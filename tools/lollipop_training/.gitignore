@@ -1,0 +1,8 @@
+/data/
+/model/*
+!/model/lollipop_detector.tflite
+/.venv/
+/logs/
+/training.log
+/core
+/core.*

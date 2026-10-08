@@ -1,0 +1,29 @@
+Verification date: 2026-10-05 America/Los_Angeles
+Python: 3.14.8; MediaPipe 0.10.35; opencv-contrib-python 4.14.0.94
+Python dependency check: PASS
+Supplied Python tests: 11 PASS (loopback socket access required)
+Bundled pose model initialization: PASS
+Unity 6000.6.3f1 compilation + isolated RunAll: exit 0
+DIGIPHANT_VALIDATION_OK: rig, slider, reset, packets, timeout, UDP, presets
+DIGIPHANT_LOCOMOTION_VALIDATION_OK: gaits, world travel, turns, additive gestures, no accumulation, compound signals, tracking loss, limits, reset
+Asset check: 123 imported files, 1 intentional adaptation (Editor/DigiPhantSetup.cs)
+Camera 0: NOT VERIFIED; OS access not authorized, no frame returned
+Live Unity Game view + camera + calibration + recording: NOT VERIFIED; Computer Use permissions pending
+Drive upload: NOT PERFORMED
+Fresh local Git checkout reconstruction: PASS; pinned starter cloned locally, omitted Elephant restored, scene references resolved, adapted DigiPhant retained, checkout Git clean. Python environment was tested separately; live Unity reopening not performed in fresh checkout.
+
+Savannah integration: 2026-10-07 America/Los_Angeles
+Source: SavannahStarter main 4e6dab5271c618d1c0bfb2022c41c0d37cd8d69f
+Open saved target: Assets/DigiPhant/Scenes/DigiPhant.unity
+Backup: Assets/DigiPhant/Scenes/DigiPhant_BeforeSavannah.unity
+Backup SHA256: 025440bc73cc8775465178c95f9170858e25970b9febbcec3e949276b3fe0935
+Protected baseline: 92 of 93 files unchanged; only target scene updated. No original scene objects removed; controls, camera, mappings and movement values retained. Unity added default URP Light metadata on save.
+Imported package: 50 files plus root metadata matched source
+SAVANNAH_BOUNDARY_CHECK: existing travel radius is 15; reaching the full course may need 30. Settings were preserved. Review this separately with the student.
+SAVANNAH_BUNDLE_OK | all project asset dependencies are inside Assets/SavannahCourse
+SAVANNAH_VALIDATION_OK | deterministic layout | 18 trees | 4 landmarks | 130 renderers | 4852 triangles | 4 shared meshes | 9 shared materials | no generated physics/audio/behaviours
+SAVANNAH_SCENE_COPY_OK | source unchanged | student component preserved | regeneration and save/reload passed
+SAVANNAH_INJECTION_OK | same scene path | unchanged student settings | exact backup | repeat/reload passed | custom course components protected
+Game view course render observed outside Play; post-injection live tracking/travel not tested.
+
+Banana peel: 2026-10-07; BANANA_PEEL_OK in active DigiPhant scene. Scene backup DigiPhant_BeforeBananaPeel.unity exists. Single independent prefab placed at (11.8, 0.045, -20.4) beside water basin. Existing serialized objects unchanged except scene root list. No physics/runtime behavior. Scene-view close-up visual QA and independent review passed.
