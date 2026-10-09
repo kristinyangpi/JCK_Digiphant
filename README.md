@@ -1,10 +1,10 @@
 # JCK DigiPhant
 
-A Unity elephant game with webcam pose controls, a Savannah course, printed-lollipop recognition, pickup/eating animations, a birthday hat, enlarged ears, flapping flight, and a breakable finish ribbon with confetti.
+A Unity elephant game with webcam pose controls, Level 1: Lollipop Forest with oversized pink-and-white swirl lollipops, rolling candy obstacles, a fading title introduction, a galaxy floor, and an animated rainbow road, printed-lollipop recognition, pickup/eating animations, a birthday hat, enlarged ears, flapping flight, and a breakable finish ribbon with confetti and a pink-tutu ballet finale.
 
 Repository: [kristinyangpi/JCK_Digiphant](https://github.com/kristinyangpi/JCK_Digiphant).
 
-Open with **Unity 6000.6.3f1**. The working scene is **`Assets/DigiPhant/Scenes/DigiPhant.unity`**. The walking boundary is 30 units. The first lollipop grows a hat, the second enlarges the ears and unlocks vertical flapping flight; the third adds no reward. Flight rises at most 2.2 units above the floor. Navigate between the finish poles on the ground, then flap to rise through the ribbon and trigger confetti.
+Open with **Unity 6000.6.3f1**. The working scene is **`Assets/DigiPhant/Scenes/DigiPhant.unity`**. The walking boundary is 30 units. The first lollipop grows a hat, the second enlarges the ears and unlocks vertical flapping flight; the third adds no reward. Flight rises at most 2.2 units above the floor. Navigate between the finish poles on the ground, then flap to rise through the ribbon and trigger confetti, automatic landing, and a short ballet with two pirouettes. Use **Reset finish ribbon** afterward to return to normal controls.
 
 ## Clone and restore
 
@@ -31,3 +31,12 @@ See [DIGIPHANT_SETUP.md](DIGIPHANT_SETUP.md) for calibration, roles, backups, va
 Automated Play-mode checks verified the second bite removes the candy and grows ears, and simulated flapping triggers the ribbon break and live confetti. These checks do not establish a complete webcam-driven performance. Bridge regression tests passed; earlier live checks confirmed printed-image recognition.
 
 Scene backups and the original sample scenes are preserved. Recordings belong on the team's Drive and are excluded from Git. No Drive destination or performance video link has been configured.
+
+The new floating candy-world variant is
+`Assets/StudentWork/Scenes/Level1_CandyWonderland.unity`: nine procedural candy
+styles, a gently elevated continuous trail, bridges, waterfalls, cloud islands,
+balloons and a castle surrounding the existing flying ribbon/ballet finish.
+The original `DigiPhant.unity` and its gameplay scripts remain unchanged. Open
+the variant in Unity and press Play; use the same pose controls and lollipop
+picture. See the Candy Wonderland section of `DIGIPHANT_SETUP.md` for the new
+terrain adapter, generation seed, regression checks and recovery instructions.

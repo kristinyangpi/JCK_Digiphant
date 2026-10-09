@@ -200,3 +200,194 @@ Flight controls remain vertical-only. To finish, eat two lollipops, navigate on 
 Validation passed missed/ground crossings, vertical and swept plane crossings, one-shot celebration, tied-end/center-break mesh motion, confetti particle emission, reset, pole collision references and clear ascent at gate center. Rendered before/after previews confirmed the gate and confetti appearance. A separate actual Play-mode check drove ascent from simulated flapping, confirmed automatic runtime crossing detection, one ribbon break and live confetti, then restored the scene. Course obstacle validation also passed. This is automated runtime verification, not a new webcam performance test.
 
 Menus: **DigiPhant > Student Props > Install Ribbon Finish Celebration**, **Validate Ribbon Finish**, and **Validate Ribbon Finish in Play Mode**.
+
+## Cotton candy landscape and animated rainbow road
+
+The working scene's 38 green canopy/foliage pieces now use fluffy rounded cotton-candy meshes and six pastel materials: strawberry pink, lavender, baby blue, peach, mint and rose cream. Trunks, branches, canopy transforms and candy pickups remain in place. Mesh/material assets live in `Assets/StudentWork/CandyLandscape`; course obstacle proxies were synchronized to the new canopy bounds.
+
+The existing road has animated rainbow bands across its width, a gentle hue cycle and luminous stripe highlights inspired by the supplied rainbow-road reference. Only UVs and rendering were changed: saved-scene validation compared the road against `Assets/DigiPhant/Scenes/DigiPhant_BeforeCandyLandscape.unity` and confirmed vertices, triangles, local position, rotation and scale match exactly. Thus the route, turns, width and elevation are unchanged. `RainbowRoad` animates material properties during Play without rewriting shared materials.
+
+Validation passed six-color variation, compiled shaders, rendered color changes between animation times, matching obstacle bounds and exact original road geometry. Overview and closeup renders were inspected. Course obstacle and ribbon-finish validation also passed after this change. Menu: **DigiPhant > Student Props > Validate Candy Landscape**. Backup: **DigiPhant_BeforeCandyLandscape.unity** in the working scene's folder.
+
+### Galaxy floor and softened road edges
+
+The working scene now uses a dark navy procedural galaxy material on `Ground`, with blue, white, and pink stars that twinkle in Play mode. The rainbow road keeps its existing mesh, route, width, transform, and color animation. `RoundedRoadEdges` softens its silhouette and rounds 13 outer corners using a localized shader mask (0.42 m radius), without moving the route or changing movement controls.
+
+Backup: `Assets/DigiPhant/Scenes/DigiPhant_BeforeGalaxyFloor.unity`. The editor menu `DigiPhant > Student Props > Validate Galaxy Landscape` verifies unchanged floor/road geometry, compiled shaders, and differing fixed-time twinkle renders. The overview and corner close-up were visually checked. Press Play in `DigiPhant.unity` to see the stars and rainbow animation.
+
+### Finish ballet finale
+
+The working scene now connects the ribbon finish to `FinishBallet`. After a valid flying finish, normal travel, gesture posing, and candy pickup pause. The elephant descends at 0.65 units/second with existing vertical obstacle checks, rises over 1.9 seconds with both hind feet planted, and reveals a three-layer pink ruffled tutu with a satin waistband and bow. It performs two smooth full turns over 7.5 seconds, followed by a 1.4-second bow. A temporary camera angle is selected for a clear view of the finale. The finished elephant stays upright in its tutu until **Reset finish ribbon**, which hides the outfit and restores the original camera, ground pose, and controls. Earned birthday hat and large ears remain.
+
+Backup: `Assets/DigiPhant/Scenes/DigiPhant_BeforeFinishBallet.unity`. In the game, consume two lollipops, flap up through the finishing ribbon, and watch the automatic sequence. For an automatic preview/check, use **DigiPhant > Student Props > Validate Finish Ballet in Play Mode**; it simulates flight input and exits Play after validating the finale and reset.
+
+Validation passed both fixed-step scene checks (slow landing, grounded hind soles, 720-degree turns, no horizontal drift, outfit timing, reset) and real Play-mode LateUpdate checks (actual ribbon trigger, landing/dance despite travel/pose/flap input, retained large ears, and reset). Tutu and runtime pirouette renders were visually inspected.
+
+### Level 1: Lollipop Forest
+
+The saved working scene now includes **Level 1: Lollipop Forest** as an additive Candy Wonderland update. All 18 original Acacia tree objects remain in the scene, inactive, for recovery; giant pink-and-white swirl lollipops occupy their locations. The new decorative lollipops reuse the existing candy disc and pink/cream materials, with a separate wider cream spiral mesh and candy-cane sticks. The seven original edible lollipops retain their transforms, references, webcam detection, pickup, eating, hat, and ear/flight rewards. The feeding bush, pond, banana peel, galaxy floor, rainbow road, ribbon, confetti, and ballet remain.
+
+Three striped giant candy balls patrol clear lanes across different sections of the existing road. Their visible spheres roll according to traveled distance. Solid boxes join the existing obstacle list; balls check each short movement step for the elephant and scenery, pause before overlap, and resume when clear. They do not push the elephant or add a damage/reset mechanic. The existing conservative body/box obstacle checks and 30-unit walking boundary remain. Balls pause after a successful finish. Navigate around them on the surrounding floor or wait for the crossing to clear.
+
+A non-interactive uGUI Canvas displays **Level 1: Lollipop Forest** at screen center on Play startup: 0.45-second smooth fade-in, approximately three seconds fully visible, then a 0.55-second smooth fade-out. It reuses the existing finish text font and the game's white-on-dark panel styling. CanvasScaler, centered anchors, text fitting/wrapping, and clearance for the original control sidebar support different resolutions. The overlay has no GraphicRaycaster and does not intercept controls. Existing IMGUI panels remain.
+
+Backup: `Assets/DigiPhant/Scenes/DigiPhant_BeforeLollipopForest.unity`. Open the usual `Assets/DigiPhant/Scenes/DigiPhant.unity` and press Play. No project or input mapping changes are required. Editor menus under **DigiPhant > Level 1** provide the installer and scene/Play validation checks.
+
+Validation: original road/floor mesh, material, and transforms are unchanged; the seven edible targets are unchanged; original gameplay component settings are unchanged; all 99 existing obstacle references are retained, with 36 forest solids and three rolling solids appended. Forest lane patrols, ball/elephant stopping and resumption, navigation blocking, smooth title opacity, centered unclipped landscape/4:3/portrait layouts, and actual startup/rolling Update behavior passed. Existing finish ribbon/confetti, course movement checks, and actual Play-mode ballet also passed. Shared Elephant asset fingerprints remain intact.
+
+The existing actual two-bite Play regression also passed: both candies disappeared after eating, enlarged ears appeared, and flap flight unlocked. The final title layout and rolling patrols passed a second startup Play check after the sidebar-clearance refinement.
+
+## Level 1 — floating Candy Wonderland scene variant
+
+Open `Assets/StudentWork/Scenes/Level1_CandyWonderland.unity` and press Play.
+The original `Assets/DigiPhant/Scenes/DigiPhant.unity` remains unchanged and
+continues to provide the previous galaxy/rainbow game. Its existing
+`DigiPhant_BeforeLollipopForest.unity` backup is also retained.
+
+This variant uses procedural 3D scenery inspired by the supplied candy-world
+references: a continuous curved pink trail with gentle hills (maximum measured
+slope 7.27 degrees), piped icing edges, protective biscuit fences, two bridge
+sections, floating cake islands, animated turquoise waterfalls, pastel cloud
+banks, drifting striped balloons, nine different reusable candy prefabs and a
+castle around the existing ribbon finish. The models are stylized procedural
+geometry rather than detailed production art matching the reference exactly.
+The title reuses the original UGUI CanvasGroup/fade implementation, now with
+pink outlined lettering, a smaller `Level 1:` line, sugar stars and gentle
+floating motion. It holds for three seconds between its fades and does not
+intercept input.
+
+Use the same camera/pose controls and calibration as before. Follow the fenced
+trail, steer around the three rolling balls, and approach the existing edible
+pink-swirl lollipops near the castle. Show the same trained lollipop picture to
+the webcam to pick and eat them. The first bite grants the birthday hat; the
+second enlarges the ears and unlocks sideways arm flapping. Raise the elephant
+through the castle's ribbon to trigger its existing confetti and landing/ballet
+sequence. No third-bite reward, movement mapping or level-loading behavior was
+added.
+
+The new scene adds `CandyTerrainGrounding` to the existing Controls object with
+the user's authorization. It changes only the ground elevation used by the
+current locomotion/flight systems and retains their input mappings, speeds,
+gaits, flight cap, landing timeout and camera offset. Existing controller,
+locomotion, flight, pickup and finale source files were not edited for this
+update. The adapter explicitly binds the existing private `startPosition`
+ground reference; it verifies that field on initialization and must be reviewed
+if that controller implementation changes. It is absent from the original scene.
+
+New files are under `Assets/StudentWork/CandyWonderland/`:
+
+- `Art/`: nine candy prefabs, procedural meshes, shared materials, cloud/static
+  mesh batches and the new scene's bloom profile.
+- `Editor/CandyMeshKit.cs`, `CandyVariants.cs`, `CandyWonderlandSetup.cs`: mesh,
+  material/prefab generation and scene assembly. The forest uses a fixed seed
+  of 4817. To vary placement, edit `Placement Seed` on the new level root and
+  rebuild from that variant; the current scene is copied to a numbered draft
+  backup first. Rebuilding reconstructs the variant from the preserved original
+  game, so use that command deliberately after making custom scene edits.
+- `Runtime/`: terrain grounding, decorative camera clearance, cloud/balloon
+  animation, cloud title backdrop, title floating and level/route data.
+- `Shaders/`: URP pastel sky, soft cloud and flowing waterfall shaders.
+- `Editor/CandyWonderlandValidation.cs`, `CandyWonderlandPlayValidation.cs`:
+  new static/Play Mode regression checks. The earlier flat-forest validation
+  still describes the earlier scene and should not be used to validate this
+  different environment.
+
+From **DigiPhant > Candy Wonderland**, run **Validate scene and capture views**
+for missing references, shader compilation, all 241 route samples, gentle
+slopes, static clearance, rolling lanes and centered titles at 1280×720,
+1024×768 and 540×960. Run **Validate walking, flying and finish in Play Mode**
+for the original locomotion evaluator traversing the full route/bridges,
+height continuity, live hazard animation, automatic title fade, capped flap
+flight, slow landing and the existing ribbon/confetti/ballet completion.
+That route regression temporarily excludes the moving hazard colliders to
+isolate terrain traversal; the hazards' movement/collision checks are separate.
+The existing **Student Props > Validate Second Bite in Play Mode** verifies the
+actual two eating animations, disappearing candy, ear growth and flight unlock.
+All runtime test changes are discarded when Play ends.
+
+Scenery meshes are combined by material, clouds have no shadows or decorative
+physics, and sky sparkles are capped at 120 particles. The active scene was
+checked in the local Unity editor; editor update timing is not a standalone
+player-build performance benchmark. Preview captures are written to the local
+temporary `candy-wonderland-validation` directory (title captures reuse
+`lollipop-forest-validation`).
+
+## Magical pond interaction (current Candy Wonderland scene)
+
+The middle (second in route order) rolling candy obstacle is replaced in the existing
+`Assets/StudentWork/Scenes/Level1_CandyWonderland.unity` scene. The first and third
+balls retain their settings and behavior. The previous second ball is inactive
+rollback data; its solid is removed from the movement obstacle list.
+Backup: `Assets/StudentWork/Scenes/Level1_CandyWonderland_BeforeMagicalPond.unity`.
+
+Approach the turquoise pond on foot. Use Camera mode with your shoulders, elbows,
+and hands visible. Extend either arm horizontally and place the other hand near
+that arm's elbow, matching the reference. Hold for 0.65 seconds. The minimum
+landmark visibility/presence is 0.75 and geometric match is 0.8. Mirrored versions
+are accepted. The existing MediaPipe Pose Landmarker and same camera/UDP bridge
+are reused; no trained model is replaced or claimed to classify this new pose.
+Single-camera landmark rules cannot reliably distinguish every depth arrangement;
+poor angles/occlusion can require repositioning. The reference pose successfully triggered the full sequence in a live webcam
+check. For seated use, select **Seated / upper body**; the bridge also permits
+confident pond upper-body landmarks without changing full-body movement checks.
+
+The pond locks the route, including the existing capped flight height. A valid
+held pose begins one continuous, bounded trunk-rig animation: reach, spiral suction,
+progressive water drain, gentle lift, sparkling spray, and growing pastel rainbow.
+Suction and lift overlap, and spray/rainbow overlap. Travel and competing candy
+pickup are paused during the sequence. Water disappears before the gate unlocks;
+movement resumes after the trunk settles. The rainbow lingers another nine seconds
+and fades over two seconds. No health/restart system or new dependency is added.
+The existing **Return to starting position** button resets the pond; exiting and
+re-entering Play also restores it. Return resets do not clear existing candy rewards.
+
+New runtime: `CandyWonderland/Runtime/MagicalPond.cs`.
+New editor tools: `CandyWonderland/Editor/MagicalPondSetup.cs` and
+`MagicalPondValidation.cs`. New shaders: `MagicalPond.shader` and `PondMagic.shader`;
+new pond mesh/materials and waterfall droplets live in the existing Art folder/scene.
+Small integration hooks were added to DigiPhantController (optional pond pose
+packet + action lock), DigiPhantLocomotion (action lock/reset), and LollipopPickup
+(competing pickup lock). `tools/lollipop_tracking/bridge.py` adds optional
+`pondPose` measurements without changing the six movement/flap channels.
+Existing terrain, movement speeds, gesture mappings, flight, eating, rewards,
+finish, and ballet systems remain in use.
+
+Visual refinements use the installed URP: soft sunlight/shadows, subtle contrast
+and saturation adjustment, SMAA, existing bloom/fog, and bounded droplets at
+already animated waterfall curtains. No expensive reflection or physics simulation.
+
+Testing menus under **DigiPhant > Candy Wonderland**:
+- **Validate magical pond in Play Mode**: held/brief/wrong/occluded pose tests,
+  across-width collision, pickup lock, drain, spray/rainbow, dry crossing, reset,
+  and both remaining rolling hazards. Stops Play automatically.
+- **Preview pond sequence in Play Mode**: enter Play, then select this to position
+  the elephant before the pond and show the full sequence without a webcam gesture.
+  This is an editor test helper, not a gameplay bypass. Stop Play afterwards.
+- Existing **Validate walking, flying and finish in Play Mode** remains available;
+  it excludes moving-ball solids and the pond gate for deterministic terrain
+  regression, while the separate pond validation exercises the actual lock/unlock.
+- Python gesture tests: `python3 -m unittest discover -s tools/lollipop_tracking
+  -p 'test_pond_pose.py'` (run as one command).
+
+No manual scene wiring is required in the saved scene. Do not run the original
+world rebuild command over customized scenery without using its backup; the pond
+installer is intended for an existing scene with three unmodified active hazards.
+
+Verified in Unity: pond state/collision/reset checks; actual live webcam trigger
+and path unlock; full-route hills/bridges and capped flight; ribbon/confetti/ballet.
+The final bounded trunk test measured a maximum tip delta of 5.76 degrees per
+0.05-second step (115 degrees/second cap), with water target error below 0.001m.
+
+## Rear third-person gameplay camera
+
+The current Candy Wonderland scene uses `StudentWork/Runtime/ElephantThirdPersonCamera.cs`
+on DigiPhant Controls. The existing Main Camera follows behind the elephant's
+heading, looks at its upper body, follows elevation/flight, and smooths position.
+A rear-hemisphere guard prevents an abrupt reversal from leaving the camera in
+front. Existing finish-ballet cinematics temporarily retain camera ownership.
+Distance (12m), height (6m), look height (2.4m), and smoothing (6) are adjustable
+on the component. No movement/pose mappings were changed.
+The locomotion script skips its old fixed-world camera offset when this component
+owns the camera. Setup menu: DigiPhant > Student Props > Install rear third person
+camera. Backup: `Assets/StudentWork/Scenes/Level1_CandyWonderland_BeforeThirdPersonCamera.unity`.
+Validated four headings, abrupt reversal, player framing, relocation, and Game view.

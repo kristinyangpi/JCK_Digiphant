@@ -16,6 +16,7 @@ namespace DigiPhant
         public float[] values;
         public float[] confidence;
         public float[] flap;
+        public float[] pondPose;
     }
     [Serializable] public class PoseFrame
     {
@@ -61,6 +62,7 @@ namespace DigiPhant
         public bool CalibrationPending => calibrationDeadline >= 0;
         readonly float[,] values = new float[4, 6];
         readonly float[,] confidence = new float[4, 6];
+        readonly float[,] pondPoseValues = new float[4,2];
         readonly float[,] flapValues = new float[4,4];
         readonly float[,] neutral = new float[4, 6];
         readonly float[] lastSeen = { -1000, -1000, -1000, -1000 };
@@ -178,6 +180,7 @@ namespace DigiPhant
             {
                 if (p == null || p.slot < 1 || p.slot > 4 || !slots.Add(p.slot) ||
                     p.values == null || p.confidence == null || p.values.Length != 6 || p.confidence.Length != 6) return false;
+                if(p.pondPose!=null && (p.pondPose.Length!=2 || Array.Exists(p.pondPose,v=>!Finite(v)||v<0||v>1))) return false;
                 if(p.flap!=null && (p.flap.Length!=4 || Array.Exists(p.flap,v=>!Finite(v)))) return false;
                 for (int k = 0; k < 6; k++)
                     if (!Finite(p.values[k]) || !Finite(p.confidence[k]) || p.confidence[k] < 0 || p.confidence[k] > 1) return false;
@@ -192,6 +195,8 @@ namespace DigiPhant
             }
             for(int slot=0;slot<4;slot++) for(int k=0;k<4;k++) flapValues[slot,k]=0;
             foreach(var person in frame.people) if(person.flap!=null) for(int k=0;k<4;k++) flapValues[person.slot-1,k]=person.flap[k];
+            Array.Clear(pondPoseValues,0,pondPoseValues.Length);
+            foreach(var person in frame.people) if(person.pondPose!=null) for(int k=0;k<2;k++) pondPoseValues[person.slot-1,k]=person.pondPose[k];
             ReceivedFrames++;
             return true;
         }
@@ -215,6 +220,11 @@ namespace DigiPhant
                     Status = "Ignored invalid camera packet";
             }
             catch (SocketException e) { Status = "Camera connection: " + e.Message; }
+        }
+        public bool TryReadPondPose(int performer,float now,out float score,out float quality) {
+            score=quality=0;int i=performer-1;
+            if(inputMode!=InputMode.Camera||i<0||i>=performerCount||now-lastSeen[i]>Mathf.Min(.3f,trackingTimeout)) return false;
+            score=pondPoseValues[i,0];quality=pondPoseValues[i,1];return quality>=.75f;
         }
         public bool IsTracked(int slot, float now)
         {
@@ -305,6 +315,7 @@ namespace DigiPhant
         }
         public void ApplyControls(float now, float dt)
         {
+            if(GetComponent<StudentWork.FinishBallet>()?.ControlsElephant==true)return;
             foreach (var pair in rest) if (pair.Key != null) pair.Key.localRotation = pair.Value;
             var locomotion = GetComponent<DigiPhantLocomotion>();
             bool animated = locomotion != null && locomotion.isActiveAndEnabled && locomotion.Evaluate(now, dt);
@@ -333,7 +344,7 @@ namespace DigiPhant
             if (previousMode != inputMode) SetInputMode(inputMode);
             if (inputMode == InputMode.Camera) PollCamera(Time.realtimeSinceStartup);
             UpdateCalibrationCountdown(Time.realtimeSinceStartup);
-            ApplyControls(Time.realtimeSinceStartup, Time.deltaTime);
+            if(!(GetComponent<StudentWork.CandyWonderland.MagicalPond>()?.ControlsElephant ?? false)) ApplyControls(Time.realtimeSinceStartup, Time.deltaTime);
             var stageCamera = Camera.main;
             if (stageCamera != null)
             {

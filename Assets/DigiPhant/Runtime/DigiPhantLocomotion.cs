@@ -149,6 +149,8 @@ namespace DigiPhant
         }
         public bool Evaluate(float now, float dt)
         {
+            if(GetComponent<StudentWork.CandyWonderland.MagicalPond>()?.ControlsElephant ?? false) { StopMotion();return true; }
+            if(GetComponent<StudentWork.FinishBallet>()?.ControlsElephant==true){StopMotion();CurrentAction="Finish ballet";return true;}
             if (!enableLocomotion) { StopAnimation(); return false; }
             if (!StartAnimation()) return false;
             dt = Mathf.Clamp(dt, 0, .1f);
@@ -219,11 +221,13 @@ namespace DigiPhant
             destination=flight && flight.enabled ? flight.ApplyHeight(destination,startPosition.y,dt,obstacleMovement) : new Vector3(destination.x,startPosition.y,destination.z);
             if(flight && flight.AltitudeBlocked) CurrentAction += " · move clear for altitude";
             travelRoot.position = destination;
-            if (followElephant && followCamera) followCamera.transform.position = destination + cameraOffset;
+            if (followElephant && followCamera && !(GetComponent<StudentWork.ElephantThirdPersonCamera>()?.OwnsCamera ?? false)) followCamera.transform.position = destination + cameraOffset;
             return true;
         }
         public void ResetPosition()
         {
+            GetComponent<StudentWork.CandyWonderland.MagicalPond>()?.ResetPond();
+            GetComponent<StudentWork.FinishBallet>()?.ResetPerformance();
             if (!Initialise()) return;
             StopMotion();
             GetComponent<StudentWork.StudentFlight>()?.GroundReset();

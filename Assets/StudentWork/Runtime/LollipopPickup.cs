@@ -126,6 +126,7 @@ namespace StudentWork
         }
         public void StepDetection(float now)
         {
+            if(GetComponent<StudentWork.CandyWonderland.MagicalPond>()?.ControlsElephant ?? false) return;
             bool visible = detected && now - seen < .35f;
             if (!visible) {
                 hold = -1; if (absent < 0) absent = now;
@@ -158,7 +159,8 @@ namespace StudentWork
         public void TestPick() { if (Application.isPlaying && phase == Phase.Idle) TryPick(Time.realtimeSinceStartup); }
         public bool TryPick(float now)
         {
-            if(phase!=Phase.Idle) return false;
+            if(GetComponent<StudentWork.CandyWonderland.MagicalPond>()?.ControlsElephant ?? false) return false;
+            if(GetComponent<FinishBallet>()?.ControlsElephant==true || phase!=Phase.Idle) return false;
             foreach(var candy in picked) if(candy && candy.gameObject.activeSelf) { Status="Eating one lollipop at a time"; return false; }
             target = ClosestReachable();
             if (!target) {
@@ -318,6 +320,10 @@ namespace StudentWork
             target.SetParent(home.parent,false);target.localPosition=home.position;target.localRotation=home.rotation;target.localScale=home.scale;target.gameObject.SetActive(home.active);
             homes.Remove(target);picked.Remove(target);
         }
+        public void PrepareForFinish() {
+            if(phase==Phase.Reach || phase==Phase.Mouth || phase==Phase.Eat) ReleaseFailedCandy();
+            CancelReach();hold=absent=-1;seen=-1000;detected=false;armed=true;
+        }
         void CancelReach() {
             // Reset may run before any reach, or after editor domain reload has
             // restored an empty/partial private array. Idle reset must also leave
@@ -329,8 +335,9 @@ namespace StudentWork
             SetExtension(1);
             SetReachSkin(false);
         }
-        void LateUpdate() { float now=Time.realtimeSinceStartup; Poll(now); StepDetection(now); StepMotion(now); }
+        void LateUpdate() { if(GetComponent<FinishBallet>()?.ControlsElephant==true)return; float now=Time.realtimeSinceStartup; Poll(now); StepDetection(now); StepMotion(now); }
         void OnGUI() {
+            if(GetComponent<FinishBallet>()?.ControlsElephant==true)return;
             GUILayout.BeginArea(new Rect(Mathf.Max(380,Screen.width-360),Screen.height-155,350,145),GUI.skin.box);
             GUILayout.Label("LOLLIPOP PICKUP: "+Status);
             if(flight && flight.Unlocked) GUILayout.Label("FLIGHT (person "+flight.performer+"): "+(flight.Flapping?"Flapping":flight.IsAirborne?"Landing slowly":"Extend arms sideways and flap up/down"));

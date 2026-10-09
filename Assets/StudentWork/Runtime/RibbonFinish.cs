@@ -3,6 +3,7 @@ namespace StudentWork {
  [DefaultExecutionOrder(200)] public class RibbonFinish : MonoBehaviour {
   public Transform travelRoot;
   public StudentFlight flight;
+  public FinishBallet ballet;
   public MeshFilter leftRibbon,rightRibbon;
   public ParticleSystem confetti;
   public float ribbonHeight=4.45f,halfWidth=4.6f;
@@ -29,6 +30,7 @@ namespace StudentWork {
    if(!pass)return false;
    Finished=true;CelebrationCount++;finishedAt=Time.realtimeSinceStartup;
    if(confetti){confetti.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);confetti.Play(true);}
+   if(ballet)ballet.BeginPerformance();
    Debug.Log("RIBBON_FINISH: ribbon broken, confetti celebration");return true;
   }
   void LateUpdate(){
@@ -64,14 +66,16 @@ namespace StudentWork {
    mesh.vertices=verts;mesh.RecalculateNormals();mesh.RecalculateBounds();
   }
   public void ResetFinish(){
+   if(ballet)ballet.ResetPerformance();
    Finished=false;CelebrationCount=0;sampled=false;
    if(confetti)confetti.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
    if(leftMesh){leftMesh.vertices=leftVertices;leftMesh.RecalculateBounds();rightMesh.vertices=rightVertices;rightMesh.RecalculateBounds();}
   }
   void OnGUI(){if(!Finished)return;
-   GUILayout.BeginArea(new Rect(Screen.width*.5f,20,350,90),GUI.skin.box);
+   GUILayout.BeginArea(new Rect(Screen.width*.5f,20,350,115),GUI.skin.box);
    var style=new GUIStyle(GUI.skin.label){fontSize=26,alignment=TextAnchor.MiddleCenter};
    GUILayout.Label("YOU FINISHED!",style);
+   if(ballet&&ballet.ControlsElephant)GUILayout.Label(ballet.Status);
    if(GUILayout.Button("Reset finish ribbon"))ResetFinish();GUILayout.EndArea();
   }
   void OnDisable(){ResetFinish();}

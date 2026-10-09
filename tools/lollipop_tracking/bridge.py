@@ -33,6 +33,32 @@ def flap_features(landmarks):
     return [(center_y-lw.y)/scale, (center_y-rw.y)/scale, float(sideways), quality]
 
 
+def pond_pose_features(landmarks):
+    """Reference gesture: one straight horizontal arm, opposite hand at its elbow.
+
+    Uses the existing Pose Landmarker, not a new trained classification model.
+    Scores are geometric matches; quality is landmark visibility/presence.
+    Both mirrored versions are accepted. A single view cannot prove depth.
+    """
+    points = [landmarks[i] for i in (11, 12, 13, 14, 15, 16)]
+    if any(not all(math.isfinite(v) for v in (p.x, p.y, p.visibility, p.presence)) for p in points):
+        return [0., 0.]
+    quality = min(min(p.visibility, p.presence) for p in points)
+    xy = lambda i: (landmarks[i].x, landmarks[i].y)
+    scale = max(math.dist(xy(11), xy(12)), .03)
+    best = 0.
+    for shoulder, elbow, wrist, other_wrist in ((11, 13, 15, 16), (12, 14, 16, 15)):
+        a, b, c, support = map(xy, (shoulder, elbow, wrist, other_wrist))
+        ab = (b[0]-a[0], b[1]-a[1]); bc = (c[0]-b[0], c[1]-b[1])
+        straight = sum(x*y for x,y in zip(ab,bc))/max(math.hypot(*ab)*math.hypot(*bc), .0001)
+        horizontal = abs(c[1]-a[1])/scale
+        reach = abs(c[0]-a[0])/scale
+        hand_at_elbow = math.dist(support,b)/scale
+        if straight > .65 and horizontal < .75 and reach > .9 and hand_at_elbow < .8:
+            best = max(best, min(1., .8 + .2*max(0., 1.-hand_at_elbow/.8)))
+    return [best, quality]
+
+
 def extract_features(landmarks, upper_body_only=False):
     """Body-relative image measurements; Unity subtracts the calibrated neutral pose."""
     def xy(i):
@@ -261,10 +287,13 @@ def main():
                 observations = []
                 for landmarks in result.pose_landmarks:
                     center, values, confidence = extract_features(landmarks, args.upper_body_only)
-                    if confidence[4] >= .5:
+                    pond_quality = pond_pose_features(landmarks)[1]
+                    if confidence[4] >= .5 or pond_quality >= .75:
+                        if confidence[4] < .5:
+                            center = ((landmarks[11].x + landmarks[12].x)/2, (landmarks[11].y + landmarks[12].y)/2)
                         observations.append((center, values, confidence, landmarks))
                 assignments = tracker.assign([o[0] for o in observations])
-                packet = {'version': 1, 'performerCount': args.people, 'upperBodyOnly': args.upper_body_only, 'people': [dict(slot=slot, values=observations[i][1], confidence=observations[i][2], flap=flap_features(observations[i][3]))
+                packet = {'version': 1, 'performerCount': args.people, 'upperBodyOnly': args.upper_body_only, 'people': [dict(slot=slot, values=observations[i][1], confidence=observations[i][2], flap=flap_features(observations[i][3]), pondPose=pond_pose_features(observations[i][3]))
                                                  for slot, i in assignments.items()]}
                 sender.sendto(json.dumps(packet, allow_nan=False).encode(), ('127.0.0.1', args.port))
                 h, w = frame.shape[:2]
