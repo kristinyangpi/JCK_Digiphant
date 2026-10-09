@@ -54,8 +54,11 @@ class TrackingTests(unittest.TestCase):
         for count in (1, 2):
             t = PerformerTracker(count)
             assigned = t.assign([(.8, .5), (.2, .5), (.5, .5)])
-            self.assertEqual(len(assigned), count)
-            self.assertEqual(assigned[1], 1)
+            if count == 1:
+                self.assertEqual(assigned, {})  # Solo reacquisition does not choose between bystanders.
+            else:
+                self.assertEqual(len(assigned), count)
+                self.assertEqual(assigned[1], 1)
             self.assertEqual(t.assign([(.21, .5)]), {1: 0})
 
     def test_epoch_changes_on_reset_not_assignment(self):

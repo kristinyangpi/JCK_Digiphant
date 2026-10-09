@@ -23,4 +23,4 @@ Only restore Elephant if its destination folder and metadata are absent. The stu
 See DRIVER_NAVIGATION.md. Install Python dependencies using StudentTracking/README.md; the custom hand/pose models are included.
 After restoring the shared Elephant folder above, copy SharedAssetOverrides/Elephant into Assets/Elephant (merge/overwrite materials only) to restore the customized appearance. Do not replace the current DigiPhant scene with the reference scene.
 
-Validated: 24 Python tests and Unity recovery/steering checks. Real-camera steering and three-person reliability still need user testing.
+Validated: 26 Python tests and Unity recovery/steering checks. Real-camera steering and three-person reliability still need user testing.

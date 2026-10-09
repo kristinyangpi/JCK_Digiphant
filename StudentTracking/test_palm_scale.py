@@ -1,6 +1,6 @@
 import unittest
 from types import SimpleNamespace as P
-from bridge import palm_scale
+from bridge import palm_scale, PerformerTracker
 class PalmScaleTests(unittest.TestCase):
     def geometry(self):
         pose=[P(x=0.,y=0.) for _ in range(33)]
@@ -22,4 +22,15 @@ class PalmScaleTests(unittest.TestCase):
         self.assertAlmostEqual(palm_scale(hand,pose),palm_scale(compressed_hand,compressed_pose,2))
     def test_invalid_landmarks(self):
         self.assertEqual(palm_scale([],[]),0)
+class SoloRecoveryTests(unittest.TestCase):
+    def test_reacquires_anywhere_without_epoch_reset(self):
+        tracker=PerformerTracker(1);epoch=tracker.epoch
+        self.assertEqual(tracker.assign([(.1,.2)]),{1:0})
+        self.assertEqual(tracker.assign([]),{})
+        self.assertEqual(tracker.assign([(.9,.8)]),{1:0})
+        self.assertEqual(tracker.epoch,epoch)
+    def test_multiple_people_pause_solo_mode(self):
+        tracker=PerformerTracker(1);tracker.assign([(.1,.2)])
+        self.assertEqual(tracker.assign([(.1,.2),(.8,.2)]),{})
+        self.assertEqual(tracker.assign([(.1,.2)]),{1:0})
 if __name__=='__main__':unittest.main()

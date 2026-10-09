@@ -139,6 +139,13 @@ class PerformerTracker:
         self.epoch = uuid.uuid4().hex
 
     def assign(self, centers):
+        # Solo mode can reacquire the sole visible person anywhere without a reset.
+        # Multiple candidates stay stopped rather than guessing a replacement.
+        if self.count == 1:
+            if len(centers) != 1 or not all(math.isfinite(v) for v in centers[0]):
+                return {}
+            self.positions = [centers[0]]
+            return {1: 0}
         if self.positions is None:
             if len(centers) < self.count:
                 return {}
@@ -316,7 +323,9 @@ def main():
                                       handScale=[v[2] for v in palm],
                                       handScaleConfidence=[v[1] if v[2] > 0 else 0. for v in palm])
                         observations.append((center, values, confidence, landmarks, extras))
-                assignments = tracker.assign([o[0] for o in observations])
+                # Solo recovery requires exactly one detected body, including low-confidence bystanders.
+                centers = [o[0] for o in observations]
+                assignments = tracker.assign([] if args.people == 1 and len(result.pose_landmarks) != 1 else centers)
                 packet = {'version': 1, 'trackingEpoch': tracker.epoch, 'performerCount': args.people, 'upperBodyOnly': args.upper_body_only, 'people': [dict(slot=slot, values=observations[i][1], confidence=observations[i][2], **observations[i][4])
                                                  for slot, i in assignments.items()]}
                 sender.sendto(json.dumps(packet, allow_nan=False).encode(), ('127.0.0.1', args.port))

@@ -12,8 +12,8 @@ namespace DigiPhant
         public float palmSizeDeadZone = .07f, palmSizeRange = .3f;
         float leftScaleNeutral, rightScaleNeutral, lostSince = -1, recoveredSince = -1;
         float liveDepthDelta, liveSizeDelta, liveTurn;
-        bool waitingForNeutral;
-        public const float RecoverySeconds = 20f;
+        bool waitingForStableTracking;
+        public const float RecoveryStableSeconds = .5f;
         [Range(1, 4)] public int driverSlot = 1;
         [Range(.1f, 1)] public float maximumForward = .6f;
         [Min(.05f)] public float raisedHandRange = .65f;
@@ -37,7 +37,7 @@ namespace DigiPhant
         {
             IsCalibrated = IsArmed = false;
             deadline = -1;
-            gear = 0; lostSince = recoveredSince = -1; liveTurn = liveDepthDelta = liveSizeDelta = 0; waitingForNeutral = false;
+            gear = 0; lostSince = recoveredSince = -1; liveTurn = liveDepthDelta = liveSizeDelta = 0; waitingForStableTracking = false;
             Status = "Calibrate with hands low in view, both PALMS facing camera.";
             GetComponent<DigiPhantLocomotion>()?.StopMotion();
         }
@@ -70,7 +70,7 @@ namespace DigiPhant
                 Status = "Calibration failed: palm size unavailable. Show both open hands; restart Camera tracking after this update.";
                 return false;
             }
-            lostSince = recoveredSince = -1; waitingForNeutral = false;
+            lostSince = recoveredSince = -1; waitingForStableTracking = false;
             leftDepthNeutral = ld; rightDepthNeutral = rd;
             leftPalmSign = Mathf.Sign(lp); rightPalmSign = Mathf.Sign(rp);
             gear = 0;
@@ -119,31 +119,24 @@ namespace DigiPhant
             {
                 gear = 0; IsArmed = false; recoveredSince = -1;
                 liveDepthDelta = liveSizeDelta = 0;
-                waitingForNeutral = true;
+                waitingForStableTracking = true;
                 if (lostSince < 0) lostSince = now;
-                if (now - lostSince >= RecoverySeconds)
-                {
-                    IsCalibrated = false;
-                    Status = "Tracking missing for 20s. Check P label and recalibrate.";
-                }
-                else Status = "Stopped: tracking interrupted. Calibration retained for 20s; return to your P position.";
+                Status = "Paused: looking for driver hands. Calibration retained; recovery is automatic.";
                 return false;
             }
-            if (lostSince >= 0)
+            if (waitingForStableTracking)
             {
-                if (now-lostSince >= RecoverySeconds)
-                { IsCalibrated = IsArmed = false; Status = "Tracking gap exceeded 20s. Recalibrate driver."; return false; }
-                lostSince = -1; // The detection gap has ended; allow time to read the recovery instruction.
-            }
-            if (waitingForNeutral)
-            {
-                if (left-leftNeutral > handDeadZone || right-rightNeutral > handDeadZone)
-                { recoveredSince = -1; Status = "Tracking recovered: lower both hands to resume."; return false; }
+                controller.TryReadDriverHands(driverSlot, now, out _, out _, out float recoverLeft, out float recoverRight);
+                float facingL = recoverLeft * leftPalmSign, facingR = recoverRight * rightPalmSign;
+                bool sameDirection = (facingL > .35f && facingR > .35f) || (facingL < -.35f && facingR < -.35f);
+                if (!sameDirection)
+                { recoveredSince = -1; Status = "Paused: waiting for both palms or both backs to be clear."; return false; }
                 if (recoveredSince < 0) recoveredSince = now;
-                if (now-recoveredSince < .4f) { Status = "Hold both hands lowered to resume."; return false; }
-                waitingForNeutral = false; recoveredSince = -1; IsArmed = true; gear = 0;
-                Status = "Ready again. Raise both hands to move.";
-                return false; // Never move on the rearming frame.
+                if (now-recoveredSince < RecoveryStableSeconds)
+                { Status = "Driver found: stabilizing tracking, resuming automatically..."; return false; }
+                waitingForStableTracking = false; lostSince = recoveredSince = -1; IsArmed = true; gear = 0;
+                Status = "Tracking recovered. Controls ready.";
+                return false;
             }
             controller.TryReadDriverHands(driverSlot, now, out float ld, out float rd, out float lp, out float rp);
             liveDepthDelta = (rd-rightDepthNeutral)-(ld-leftDepthNeutral);
