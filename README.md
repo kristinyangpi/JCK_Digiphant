@@ -24,3 +24,7 @@ See DRIVER_NAVIGATION.md. Install Python dependencies using StudentTracking/READ
 After restoring the shared Elephant folder above, copy SharedAssetOverrides/Elephant into Assets/Elephant (merge/overwrite materials only) to restore the customized appearance. Do not replace the current DigiPhant scene with the reference scene.
 
 Validated: 26 Python tests and Unity recovery/steering checks. Real-camera steering and three-person reliability still need user testing.
+
+## Three-person eating integration
+Mirror camera zones: P1 left drives, P2 center opens mouth to pick up/eat a watermelon, P3 right currently unassigned. See DRIVER_NAVIGATION.md for setup and controls. Eating pauses travel, then returns control without clearing driver calibration.
+Adapted from https://github.com/celenashen04-boop/JCK_digiphant/tree/digiphant-integration . Only eating/animation overlay components were integrated. 41 Python tests and Unity P2 eating integration validation pass; live three-person testing remains.

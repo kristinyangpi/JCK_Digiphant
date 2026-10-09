@@ -1,3 +1,4 @@
+from mouth_tracking import match_mouths
 """DigiPhant camera -> local Unity UDP bridge. Run with --help for setup options."""
 import argparse
 from contextlib import ExitStack
@@ -175,6 +176,74 @@ class PerformerTracker:
         return result
 
 
+
+ZONE_MARGIN = .02
+
+
+def shoulder_center(landmarks):
+    """Reliable raw-camera center for zones, independent of hips and hands."""
+    if len(landmarks) < 13:
+        return (float('nan'), float('nan'))
+    shoulders = [landmarks[i] for i in (11, 12)]
+    if any(not all(math.isfinite(v) for v in (p.x, p.y, p.visibility, p.presence))
+           or min(p.visibility, p.presence) < .5 for p in shoulders):
+        return (float('nan'), float('nan'))
+    return (sum(p.x for p in shoulders) / 2, sum(p.y for p in shoulders) / 2)
+
+
+class FixedZoneTracker(PerformerTracker):
+    """Three camera areas own roles; this does not identify individual people.
+
+    Raw camera right is mirrored preview left (P1 driver). Empty, boundary,
+    and multiply occupied zones immediately omit their output slots.
+    """
+    def __init__(self):
+        super().__init__(3)
+
+    def assign(self, centers):
+        zones = {1: [], 2: [], 3: []}
+        for index, center in enumerate(centers):
+            if not all(math.isfinite(v) and 0 <= v <= 1 for v in center):
+                continue
+            x = center[0]
+            if any(abs(x - boundary) <= ZONE_MARGIN + 1e-12
+                   for boundary in (1 / 3, 2 / 3)):
+                continue
+            slot = 1 if x > 2 / 3 else 2 if x > 1 / 3 else 3
+            zones[slot].append(index)
+        return {slot: candidates[0] for slot, candidates in zones.items()
+                if len(candidates) == 1}
+
+
+def create_tracker(count):
+    # Solo reacquisition and legacy two/four-person position tracking are unchanged.
+    return FixedZoneTracker() if count == 3 else PerformerTracker(count)
+
+
+def draw_zones(frame, cv2, mirrored=True):
+    """Draw after flipping the frame so labels remain readable in both views."""
+    h, w = frame.shape[:2]
+    labels = ['P1 DRIVER', 'P2 EAT', 'P3 UNUSED']
+    if not mirrored:
+        labels.reverse()
+    line_width = max(1, round(w / 320))
+    for fraction in (1 / 3, 2 / 3):
+        x = round(w * fraction)
+        cv2.line(frame, (x, 0), (x, h - 1), (0, 0, 0), line_width + 2, cv2.LINE_AA)
+        cv2.line(frame, (x, 0), (x, h - 1), (255, 255, 255), line_width, cv2.LINE_AA)
+    font_scale = max(.3, w / 800)
+    thickness = max(1, round(w / 640))
+    for column, label in enumerate(labels):
+        (text_width, text_height), baseline = cv2.getTextSize(
+            label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+        x = round((column + .5) * w / 3 - text_width / 2)
+        y = h - max(8, round(h / 30))
+        cv2.rectangle(frame, (x - 4, y - text_height - 4),
+                      (x + text_width + 4, y + baseline + 3), (20, 20, 20), -1)
+        cv2.putText(frame, label, (x, y), cv2.FONT_HERSHEY_SIMPLEX,
+                    font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
+
+
 def requested_count(data):
     """Validate Unity's local count request without changing tracking on bad input."""
     try:
@@ -214,6 +283,7 @@ def main():
     parser.add_argument('--camera', type=int, default=0)
     parser.add_argument('--port', type=int, default=5055)
     parser.add_argument('--model', type=Path, default=Path(__file__).parent / 'pose_landmarker_full.task')
+    parser.add_argument('--face-model', type=Path, default=Path(__file__).parent / 'face_landmarker.task')
     parser.add_argument('--hand-model', type=Path, default=Path(__file__).parent / 'hand_landmarker.task')
     parser.add_argument('--download-model', action='store_true', help='Download the official model if missing')
     args = parser.parse_args()
@@ -238,7 +308,7 @@ def main():
         running_mode=vision.RunningMode.VIDEO, num_poses=4,
         min_pose_detection_confidence=.5, min_pose_presence_confidence=.5,
         min_tracking_confidence=.5)
-    tracker = PerformerTracker(args.people)
+    tracker = create_tracker(args.people)
     camera = cv2.VideoCapture(args.camera)
     if not camera.isOpened():
         raise SystemExit('Camera could not open. Check permissions or try --camera 1.')
@@ -257,8 +327,9 @@ def main():
     colors = [(100, 230, 100), (255, 180, 80), (100, 160, 255), (220, 100, 230)]
     previous_timestamp = -1
     last_preview = 0.0
-    print('Stand side by side, all visible. Follow P labels; in mirrored preview P1 starts on the right. Tracking roles do not change.')
-    print('R: reset identities (then recalibrate in Unity). Q: quit.')
+    print('Three-person mode: mirrored LEFT P1 DRIVER, CENTER P2 EAT, RIGHT P3 UNUSED. Stay clear of boundaries.')
+    print('One-person mode auto-tracks; two/four-person modes keep position tracking. Roles belong to zones in three-person mode.')
+    print('R: reset tracking (then recalibrate in Unity). Q: quit.')
     try:
         with ExitStack() as stack:
             detector = stack.enter_context(vision.PoseLandmarker.create_from_options(options))
@@ -273,6 +344,16 @@ def main():
             else:
                 print('Hand model missing: hand navigation unavailable; legacy pose controls still work. '
                       'Place hand_landmarker.task beside bridge.py or specify --hand-model.', flush=True)
+            face_detector = None
+            if args.face_model.exists():
+                face_options = vision.FaceLandmarkerOptions(
+                    base_options=python.BaseOptions(model_asset_path=str(args.face_model)),
+                    running_mode=vision.RunningMode.VIDEO, num_faces=4,
+                    min_face_detection_confidence=.5, min_face_presence_confidence=.5,
+                    min_tracking_confidence=.5)
+                face_detector = stack.enter_context(vision.FaceLandmarker.create_from_options(face_options))
+            else:
+                print('Face model missing: P2 mouth input unavailable; driver tracking still works.', flush=True)
             while True:
                 for _ in range(32):
                     try:
@@ -295,7 +376,7 @@ def main():
                     count = requested_count(data) if address == ('127.0.0.1', args.port) else None
                     if count is not None and count != args.people:
                         args.people = count
-                        tracker = PerformerTracker(count)
+                        tracker = create_tracker(count)
                         print(f'Unity selected {count} people. Reassigning; set neutral pose in Unity.')
                 ok, frame = camera.read()
                 if not ok:
@@ -311,14 +392,24 @@ def main():
                     hand_matches = match_hands(result.pose_landmarks,
                                                hand_result.hand_landmarks, hand_result.hand_world_landmarks,
                                                aspect=frame.shape[1]/frame.shape[0])
+                mouths = {}
+                if face_detector is not None and args.people == 3:
+                    face_result = face_detector.detect_for_video(
+                        mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb), timestamp)
+                    mouths = match_mouths(result.pose_landmarks, face_result.face_landmarks,
+                                          aspect=frame.shape[1]/frame.shape[0], zoned=True)
                 observations = []
                 for person, landmarks in enumerate(result.pose_landmarks):
                     center, values, confidence = extract_features(landmarks, args.upper_body_only)
-                    if confidence[4] >= .5:
+                    if args.people == 3:
+                        center = shoulder_center(landmarks)
+                    if args.people == 3 or confidence[4] >= .5:
                         world = result.pose_world_landmarks[person] if person < len(result.pose_world_landmarks) else []
                         depths, depth_confidence = hand_depth(landmarks, world)
                         palm = [hand_matches.get((person, side), (0., 0., 0.)) for side in (0, 1)]
-                        extras = dict(handDepth=depths, handDepthConfidence=depth_confidence,
+                        mouth, mouth_confidence = mouths.get(person, (0., 0.))
+                        extras = dict(mouthOpen=mouth, mouthConfidence=mouth_confidence,
+                                      handDepth=depths, handDepthConfidence=depth_confidence,
                                       palmFacing=[v[0] for v in palm], palmConfidence=[v[1] for v in palm],
                                       handScale=[v[2] for v in palm],
                                       handScaleConfidence=[v[1] if v[2] > 0 else 0. for v in palm])
@@ -329,7 +420,7 @@ def main():
                 packet = {'version': 1, 'trackingEpoch': tracker.epoch, 'performerCount': args.people, 'upperBodyOnly': args.upper_body_only, 'people': [dict(slot=slot, values=observations[i][1], confidence=observations[i][2], **observations[i][4])
                                                  for slot, i in assignments.items()]}
                 sender.sendto(json.dumps(packet, allow_nan=False).encode(), ('127.0.0.1', args.port))
-                # Inference and identity assignment use raw coordinates; mirror display only.
+                # Inference and role assignment use raw coordinates; mirror display only.
                 if not args.no_mirror_preview:
                     frame = cv2.flip(frame, 1)
                 h, w = frame.shape[:2]
@@ -364,7 +455,9 @@ def main():
                         cv2.putText(frame, label, anchor, cv2.FONT_HERSHEY_SIMPLEX, font_scale,
                                     color, thickness, cv2.LINE_AA)
                 message = f'{len(assignments)}/{args.people} assigned' if args.no_window else f'{len(assignments)}/{args.people} assigned | R: reassign | Q: quit'
-                if tracker.positions is None:
+                if args.people == 3:
+                    draw_zones(frame, cv2, mirrored=not args.no_mirror_preview)
+                elif tracker.positions is None:
                     message = f'Waiting for {args.people} visible people' if args.no_window else f'Stand side by side: waiting for {args.people} visible people | Q: quit'
                 cv2.putText(frame, message, (12, 26), cv2.FONT_HERSHEY_SIMPLEX, .55, (255, 255, 255), 2)
                 now = time.monotonic()

@@ -1,3 +1,21 @@
+# 三人固定区域操作（当前版本）
+镜像摄像头画面从左到右：**P1 DRIVER / P2 EAT / P3 UNUSED**。
+
+1. 进入 `Assets/DigiPhant/Scenes/DigiPhant.unity`，按 Play，选择 Camera、3 people、Seated / upper body。
+2. P1肩膀和双手留在左侧区域；P2肩膀和脸在中间区域；P3在右侧，暂不驱动任何动作。分区按肩膀中心判定，P2嘴部还需位于中间区域。
+3. 仅P1点击 Calibrate driver，8秒内保持双掌朝摄像头、双手低位且完整可见。不用全身neutral校准。
+4. P1继续使用抬手控制速度、左右手向镜头前伸转向、掌心/手背切换前进后退。丢失后稳定0.5秒自动恢复。
+5. P1将象鼻带到西瓜附近（水平距离3.5单位内）。P2张嘴抓取，张大嘴保持约0.3秒吃下；闭嘴放下。西瓜位于喂食灌木及水盆附近。
+6. 进食动画期间自动停车，结束后恢复P1驾驶。吃掉的西瓜本轮不再生，重新进入Play可重置。
+
+区域边界设有缓冲带；同一区域有两个人时该区域暂停。角色属于区域，不是人脸身份：不要互换区域。P2单独露脸、肩膀不在画面中时不会分配角色。仅一个人测试也可保持3人模式：站左侧试驾驶、站中间试P2嘴部输入，空区域不会阻塞其余角色。
+
+来源：celenashen04-boop/JCK_digiphant 的 digiphant-integration 分支，移植 Watermelon/ClipOverlay 并适配独立P2输入；未导入喝水、喷水或原项目设置。
+验证：41项Python测试通过、Face Landmarker加载通过、Unity P2_EATING_VALIDATION_PASSED。场景备份 `Logs/DigiPhant-before-P2-eating-20261009-105411.unity`。真人三人测试尚未完成。
+
+---
+下面保留此前导航技术说明；以上角色分区说明优先。
+
 # 单人驾驶：三人出镜
 
 更新：2026-10-08。场景：Assets/DigiPhant/Scenes/DigiPhant.unity。

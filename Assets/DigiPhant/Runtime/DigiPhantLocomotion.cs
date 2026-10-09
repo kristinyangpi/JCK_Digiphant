@@ -166,6 +166,7 @@ namespace DigiPhant
                 bool turning = steering.TryRead(controller, now, out desiredTurn);
                 valid = moving && turning;
             }
+            if (StudentWork.ClipOverlay.Busy) { valid = false; desiredForward = desiredTurn = 0; }
             if (!valid) { throttle = turn = 0; }
             else
             {

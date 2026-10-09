@@ -13,6 +13,7 @@ namespace DigiPhant
     [Serializable] public class PerformerFrame
     {
         public int slot;
+        public float mouthOpen, mouthConfidence;
         public float[] values;
         public float[] confidence;
         public float[] handDepth, handDepthConfidence, palmFacing, palmConfidence, handScale, handScaleConfidence;
@@ -88,6 +89,7 @@ namespace DigiPhant
         readonly float[,] handScale = new float[4, 2], handScaleConfidence = new float[4, 2];
         readonly float[,] handDepth = new float[4, 2], handDepthConfidence = new float[4, 2];
         readonly float[,] palmFacing = new float[4, 2], palmConfidence = new float[4, 2];
+        readonly float[] mouthOpen = new float[4], mouthConfidence = new float[4];
         string trackingEpoch;
         readonly float[] lastSeen = { -1000, -1000, -1000, -1000 };
         readonly Dictionary<Transform, Quaternion> rest = new Dictionary<Transform, Quaternion>();
@@ -119,6 +121,7 @@ namespace DigiPhant
             performerCount = previousCount = Mathf.Clamp(count, 1, 4);
             foreach (var c in controls)
             {
+                if (GetComponent<P2EatingRole>()?.RoleEnabled == true) continue;
                 switch (c.label)
                 {
                     case "Front left leg": case "Front right leg": c.performer = 1; break;
@@ -185,6 +188,8 @@ namespace DigiPhant
         }
         void ClearHandValidity()
         {
+            Array.Clear(mouthOpen, 0, mouthOpen.Length);
+            Array.Clear(mouthConfidence, 0, mouthConfidence.Length);
             Array.Clear(handScaleConfidence, 0, handScaleConfidence.Length);
             Array.Clear(handDepthConfidence, 0, handDepthConfidence.Length);
             Array.Clear(palmConfidence, 0, palmConfidence.Length);
@@ -231,6 +236,7 @@ namespace DigiPhant
             {
                 if (p == null || p.slot < 1 || p.slot > 4 || !slots.Add(p.slot) ||
                     p.values == null || p.confidence == null || p.values.Length != 6 || p.confidence.Length != 6) return RejectPacket("Invalid performer slot or feature arrays", now);
+                if (!Finite(p.mouthOpen) || p.mouthOpen < 0 || p.mouthOpen > 3 || !Finite(p.mouthConfidence) || p.mouthConfidence < 0 || p.mouthConfidence > 1) return RejectPacket("Invalid mouth value or confidence", now);
                 if (!ValidPair(p.handDepth, p.handDepthConfidence) || !ValidPair(p.palmFacing, p.palmConfidence) || !ValidPair(p.handScale, p.handScaleConfidence)) return RejectPacket("Invalid hand arrays or confidence", now);
                 for (int k = 0; k < 6; k++)
                     if (!Finite(p.values[k]) || !Finite(p.confidence[k]) || p.confidence[k] < 0 || p.confidence[k] > 1) return RejectPacket("Invalid body value or confidence for P" + p.slot, now);
@@ -246,6 +252,7 @@ namespace DigiPhant
             {
                 int i = p.slot - 1;
                 lastSeen[i] = now;
+                mouthOpen[i] = p.mouthOpen; mouthConfidence[i] = p.mouthConfidence;
                 for (int k = 0; k < 6; k++)
                 { values[i, k] = Mathf.Clamp(p.values[k], -3, 3); confidence[i, k] = p.confidence[k]; }
                 for (int k = 0; k < 2; k++)
@@ -283,7 +290,7 @@ namespace DigiPhant
                 for (int i = 0; i < 64 && socket.Available > 0; i++) latest = socket.Receive(ref sender);
                 if (latest != null) {
                     if (latest.Length < 16000) AcceptPacket(Encoding.UTF8.GetString(latest), now);
-                    else { lastPacketAt = now; RejectPacket("Camera packet too large", now); }
+                    else { lastPacketAt = now; Array.Clear(confidence, 0, confidence.Length); ClearHandValidity(); RejectPacket("Camera packet too large", now); }
                 }
             }
             catch (SocketException e) { Status = "Camera connection: " + e.Message; }
@@ -426,6 +433,20 @@ namespace DigiPhant
             Status = "Neutral pose saved";
             return true;
         }
+        public bool TryReadMouthOpen(int slot, float now, out float value)
+        {
+            value = 0;
+            int i = slot - 1;
+            if (i < 0 || i >= performerCount || i >= 4 || now - lastSeen[i] > trackingTimeout ||
+                mouthConfidence[i] <= 0 || mouthConfidence[i] < minimumConfidence) return false;
+            value = mouthOpen[i]; return true;
+        }
+        public void ResetTrunkToRest(BoneControl trunk)
+        {
+            if (trunk?.bones == null) return;
+            foreach (var bone in trunk.bones)
+                if (bone && rest.TryGetValue(bone, out var rotation)) bone.localRotation = rotation;
+        }
         public void ResetControls()
         {
             foreach (var c in controls) { c.testValue = 0; c.current = 0; }
@@ -436,17 +457,25 @@ namespace DigiPhant
             foreach (var pair in rest) if (pair.Key != null) pair.Key.localRotation = pair.Value;
             var locomotion = GetComponent<DigiPhantLocomotion>();
             bool animated = locomotion != null && locomotion.isActiveAndEnabled && locomotion.Evaluate(now, dt);
+            var eatingRole = GetComponent<P2EatingRole>();
+            bool fixedRoles = inputMode == InputMode.Camera && eatingRole && eatingRole.RoleEnabled;
             foreach (var c in controls)
             {
                 float target = 0;
                 int i = c.performer - 1, k = (int)c.movement;
-                if (i >= 0 && i < performerCount && k >= 0 && k < 6)
+                if (fixedRoles)
+                {
+                    bool mouthVisible = TryReadMouthOpen(2, now, out float mouth);
+                    target = c.label == "Trunk curl" && mouthVisible ? Mathf.Clamp01(mouth) : 0;
+                    if (target == 0) c.current = 0;
+                }
+                else if (i >= 0 && i < performerCount && k >= 0 && k < 6)
                 {
                     if (inputMode == InputMode.TestSliders) target = c.testValue;
                     else if (IsCalibrated && IsTracked(c.performer, now) && confidence[i, k] >= minimumConfidence)
                         target = values[i, k] - neutral[i, k];
                 }
-                target = Mathf.Clamp(target * c.sensitivity, -1, 1);
+                target = Mathf.Clamp(target * (fixedRoles ? 1 : c.sensitivity), -1, 1);
                 c.current = c.smoothing <= 0 ? target : Mathf.Lerp(c.current, target, 1 - Mathf.Exp(-c.smoothing * dt));
                 if (c.bones == null || c.localAxis.sqrMagnitude < .0001f) continue;
                 foreach (var bone in c.bones)
@@ -491,7 +520,7 @@ namespace DigiPhant
             {
                 var navigation = GetComponent<DigiPhantDriverNavigation>();
                 if (navigation && navigation.isActiveAndEnabled && navigation.enableDriverNavigation)
-                    Label("Keep shoulders and wrists visible. Driver hand controls below operate travel; other body mappings are unchanged.");
+                    Label(GetComponent<P2EatingRole>()?.RoleEnabled == true ? "P1 drives with hands. P2 opens their mouth to pick up and eat. P3 is unassigned." : "Keep shoulders and wrists visible. Driver hand controls below operate travel; other body mappings are unchanged.");
                 else Label("Keep shoulders and hands visible. Raise hands for legs; tilt shoulders for steering, head and tail. Solo: left hand also drives travel; right hand curls trunk.");
             }
             int mode = GUILayout.Toolbar((int)inputMode, new[] { "Test sliders", "Camera" });
@@ -503,17 +532,19 @@ namespace DigiPhant
                 for (int i = 1; i <= performerCount; i++)
                     Label("Performer " + i + (IsTracked(i, Time.realtimeSinceStartup) ? " · visible" : " · waiting / lost"));
                 Label(TrackingStatus);
-                if (!IsCalibrated) Label("Set neutral pose for body gestures. Driver navigation has its own calibration above.");
+                bool fixedEatingRoles = GetComponent<P2EatingRole>()?.RoleEnabled == true;
+                if (fixedEatingRoles) Label("P2 mouth: open to grab, open wider to eat, close to drop. Body neutral is not required.");
+                if (!fixedEatingRoles && !IsCalibrated) Label("Set neutral pose for body gestures. Driver navigation has its own calibration above.");
                 if (CalibrationPending)
                 {
                     int seconds = Mathf.Max(0, Mathf.CeilToInt(calibrationDeadline - Time.realtimeSinceStartup));
                     Label("Setting neutral pose in " + seconds + " seconds — hold your resting pose.");
                     if (GUILayout.Button("Cancel countdown")) CancelCalibrationCountdown();
                 }
-                else if (GUILayout.Button("Set neutral pose (10 seconds)"))
+                else if (!fixedEatingRoles && GUILayout.Button("Set neutral pose (10 seconds)"))
                     BeginCalibrationCountdown(Time.realtimeSinceStartup);
                 if (GUILayout.Button("Reassign people")) ReassignPeople();
-                Label("Hold a comfortable pose, then set neutral.");
+                if (!fixedEatingRoles) Label("Hold a comfortable pose, then set neutral.");
             }
             else
             {

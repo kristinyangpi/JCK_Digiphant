@@ -14,3 +14,11 @@ Pose and Hand Landmarker model files are included. Official sources:
 
 Tests: python -m unittest discover -s StudentTracking -p "test_*.py"
 See ../DRIVER_NAVIGATION.md for controls. Do not commit recordings or virtual environments.
+
+## Three-person zones and mouth interaction
+Three-person mode uses fixed zones in the mirrored view: left=P1 driver, center=P2 mouth/eating, right=P3 unassigned. Shoulder centers assign zones; ambiguous/boundary zones send no input. Face associations also require a central face and an unambiguous nearby pose nose. Face inference shares the existing webcam and UDP stream.
+
+Face model official source:
+https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task
+
+Mouth ratio adapted from celenashen04-boop/JCK_digiphant StudentTracking/face_bridge.py (digiphant-integration branch). Current tests: 41.

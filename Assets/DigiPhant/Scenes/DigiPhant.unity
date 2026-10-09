@@ -4686,6 +4686,7 @@ GameObject:
   - component: {fileID: 557435875}
   - component: {fileID: 557435877}
   - component: {fileID: 557435878}
+  - component: {fileID: 557435879}
   m_Layer: 0
   m_Name: DigiPhant Controls
   m_TagString: Untagged
@@ -4912,6 +4913,20 @@ MonoBehaviour:
   depthDeadZone: 0.1
   maximumReverse: 0.6
   gearHoldSeconds: 0.35
+--- !u!114 &557435879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 557435874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61422b448b9bb5f47b820bf7f3fa95af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DigiPhant.P2EatingRole
+  enableFixedRoles: 1
+  eatClip: {fileID: 1827226128182048838, guid: 97c8438ec20f87749a999f0b11bb4ce3, type: 3}
 --- !u!1 &569062166
 GameObject:
   m_ObjectHideFlags: 0
