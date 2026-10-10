@@ -32,11 +32,27 @@ The mirrored camera preview is divided into fixed zones: **left = P1 driver; cen
 - P3 shows the specific printed [lollipop reference](StudentTracking/lollipop.png) to collect a nearby candy. The first eaten candy adds a birthday hat; the second enlarges the ears and unlocks synchronized sideways arm flapping for vertical flight. Stop flapping to land slowly.
 - P2 and P3 share exclusive trunk ownership. Candy pickup and flight pause horizontal travel without clearing P1 calibration.
 
-The existing scene, pink elephant, earrings, camera, and navigation are retained. No replacement candy world or finish dance was imported.
+The existing scene, pink elephant, earrings, camera placement, and navigation are retained. The floating candy backdrop below adds scenery around the original course; no finish dance was imported.
 
 P2 is adapted from https://github.com/celenashen04-boop/JCK_digiphant/tree/digiphant-integration (eating/animation overlay only). P3 is adapted from https://github.com/kristinyangpi/JCK_Digiphant at main commit `66065793cfe581f3648e31c7e16ac499ad48d623` (printed-card verification, candy rewards, and vertical flight only).
 
+## Watermelon clearance fix
+
+Fix `291324e` keeps loose watermelons clear of the animated legs and torso, offsets carried fruit from the trunk tip, and checks clearance when fruit is released. Navigation controls are unchanged.
+
+## Floating candy backdrop
+
+The original Savannah route is retained, including its mesh, height, object positions, and P1/P2/P3 control settings. Visual-only decorations from Yangpi's **Candy Wonderland** surround it: cloud islands and waterfalls to the east, candy bridges to the west, a castle beyond the far end, and clouds/balloons overhead. The skybox is changed without moving the existing camera.
+
+This imports artwork from `kristinyangpi/JCK_Digiphant` commit `66065793cfe581f3648e31c7e16ac499ad48d623`, not its elevated route or gameplay. The decoration root `Yangpi - Floating Candy Backdrop` contains no colliders or gameplay scripts. Bridges are background scenery, not a new route.
+
+The installer `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` and temporary source scene are local maintenance tools, not included in the shared repository. The shared scene and its used art assets contain the installed backdrop. The original pre-backdrop backup is `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`. Preview images are `Logs/CandyBackdrop-game.png` and `Logs/CandyBackdrop-overview.png`.
+
 ## Verification and backup
+
+Final backdrop checks passed with Unity exit code 0 in `Logs/CandyBackdropVerified.log`: `CANDY_BACKDROP_VALIDATION_OK`, `WATERMELON_ALL_CHECKS_PASSED`, and `CANDY_BACKDROP_ALL_CHECKS_PASSED`. Checks verify unchanged route geometry, original transforms and control configuration, decoration-only components, and watermelon/P1/P2/P3 regressions. This does not establish live-camera recognition reliability.
+
+Watermelon validation passed with Unity exit code 0: `Logs/WatermelonCollisionValidation.log` contains `WATERMELON_ALL_CHECKS_PASSED`. Checks cover loose-fruit clearance, carried offset, release, and P1/P2/P3 regressions. Real-camera visual confirmation remains a separate step.
 
 52 Python tests passed for the tracking integration. Unity validation passed with exit code 0 in `Logs/P3AllValidationRetry.log`: `P3_VALIDATION_OK`, `P2_EATING_VALIDATION_PASSED`, `AUTO_RECOVERY_VALIDATION_OK`, and `P3_ALL_VALIDATION_OK`. An additional locomotion evaluation check confirmed that flight raises the movement root, the camera follows, P1 calibration persists, tracking loss leads to landing, and slider mode ignores flight. Live three-person camera interaction has not yet been verified; automated checks do not establish real-camera recognition reliability.
 

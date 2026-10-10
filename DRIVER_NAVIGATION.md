@@ -27,6 +27,8 @@
 
 P1 开到喂食灌木或水盆附近的西瓜旁。P2 张嘴抓取，张大嘴保持约 0.3 秒吃下；闭嘴放下。持有西瓜时 P1 可继续驾驶，吃的动画期间停车，结束后恢复且保留驾驶校准。吃掉的西瓜本轮不再生，重新进入 Play 可重置。
 
+西瓜防穿模修复（`291324e`）：地面上的西瓜会避开大象动画中的腿部和躯干；持有时与象鼻末端保持偏移，放下时重新检查安全位置。导航手势、速度和转向设置未改变。
+
 ## P3：棒棒糖、奖励和飞行
 
 1. P1 驶近灌木或水盆旁的棒棒糖，确保在象鼻可达范围。若显示 Walk closer，继续靠近。
@@ -36,9 +38,21 @@ P1 开到喂食灌木或水盆附近的西瓜旁。P2 张嘴抓取，张大嘴�
 5. 解锁后，P3 双臂向两侧伸展，同时上下挥动。静止展开或只动一只手不会触发持续飞行。肩膀、肘部和手腕尽量完整出镜。
 6. 飞行仅垂直升降，最高距起始地面 2.2 单位。停止挥臂或失去追踪后缓慢落地；落地并收回展开的双臂后，P1 可继续驾驶。
 
-P2 持瓜或吃瓜时，P3 不能抢用象鼻；P3 吃糖期间也不接受 P2 抓取。吃糖及飞行暂停水平移动，但不清除 P1 校准。飞行期间不能开始新的抓取。没有导入糖果场景、终点舞蹈、喷水或喝水功能。
+P2 持瓜或吃瓜时，P3 不能抢用象鼻；P3 吃糖期间也不接受 P2 抓取。吃糖及飞行暂停水平移动，但不清除 P1 校准。飞行期间不能开始新的抓取。糖果背景仅作视觉装饰；没有导入来源项目的高架路线、终点舞蹈、喷水或喝水功能。
+
+## 漂浮糖果背景：原路线保留
+
+沿用原 Savannah 路线、地面高度和物体位置，P1/P2/P3 操作方法不变。路线东侧添加云岛和瀑布，西侧添加装饰桥，远端添加城堡，上方添加云朵与气球。背景换为糖果世界天空，原摄像机位置与朝向不变。桥只作装饰，不需要改走桥上。
+
+背景来自 Yangpi 的 Candy Wonderland 美术资源；没有导入其高架路线或游戏逻辑。新增根节点 `Yangpi - Floating Candy Backdrop` 不含碰撞体或玩法脚本。
+
+安装器 `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` 及临时来源场景仅作本地维护，不随仓库共享；共享版本包含已安装背景的场景和实际使用的美术资源。添加背景前的原场景备份是 `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`。预览图：`Logs/CandyBackdrop-game.png` 和 `Logs/CandyBackdrop-overview.png`。
 
 ## 验证与来源
+
+背景最终检查已通过：`Logs/CandyBackdropVerified.log` 退出码为 0，包含 `CANDY_BACKDROP_VALIDATION_OK`、`WATERMELON_ALL_CHECKS_PASSED` 和 `CANDY_BACKDROP_ALL_CHECKS_PASSED`。确认原路线网格、已有物体变换和控制配置不变，新增背景只含装饰，并通过西瓜及 P1/P2/P3 回归检查。这不代表已完成真人摄像头测试。
+
+西瓜修复验证已通过：`Logs/WatermelonCollisionValidation.log` 包含 `WATERMELON_ALL_CHECKS_PASSED`，Unity 退出码为 0。检查覆盖动画腿部／躯干避让、持有间距、放下，以及 P1、P2、P3 功能回归；仍需在实际摄像头操作中确认视觉效果。
 
 52 项 Python 测试已通过。Unity 完整检查通过，`Logs/P3AllValidationRetry.log` 退出码为 0，包含 `P3_VALIDATION_OK`、`P2_EATING_VALIDATION_PASSED`、`AUTO_RECOVERY_VALIDATION_OK` 和 `P3_ALL_VALIDATION_OK`。额外的实际移动计算检查确认：飞行抬升移动根节点、摄像机跟随、P1 校准保留、丢失追踪后落地，滑块模式忽略飞行输入。尚未完成真人三人摄像头测试，现场仍需验证卡片清晰度、区域遮挡、挥臂空间和恢复表现。
 
