@@ -52,6 +52,99 @@ namespace StudentWork
         Transform tip, trunkParent;
         Vector3 restTip, grabbedFrom;
         float groundY, fallSpeed, carried;
+        Transform[] legTops, legEnds;
+        Transform trunkEnd;
+        const float Clearance = .05f;
+        public float CollisionRadius => .5f * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y), Mathf.Abs(transform.lossyScale.z));
+
+        void BindCollisionRig(DigiPhantController controller)
+        {
+            var tops = new System.Collections.Generic.List<Transform>();
+            var ends = new System.Collections.Generic.List<Transform>();
+            foreach (var control in controller.controls)
+                foreach (var bone in control.bones ?? System.Array.Empty<Transform>())
+                    if (bone && (bone.name.Contains("Humerus") || bone.name.Contains("Femur")) && !tops.Contains(bone))
+                    {
+                        var end = bone;
+                        foreach (var child in bone.GetComponentsInChildren<Transform>())
+                            if (child.position.y < end.position.y) end = child;
+                        tops.Add(bone); ends.Add(end);
+                    }
+            legTops = tops.ToArray(); legEnds = ends.ToArray();
+            trunkEnd = tip;
+            while (trunkEnd.childCount == 1) trunkEnd = trunkEnd.GetChild(0);
+        }
+
+        // Kinematic movement bypasses physics. Resolve the fruit against moving anatomical
+        // capsules instead; ears, hats and renderer bounds never affect the footprint.
+        public Vector3 SeparateFromElephant(Vector3 point, float radius)
+        {
+            if (legTops == null || legTops.Length < 4) return point;
+            float width = 0;
+            for (int i = 0; i < legTops.Length; i++)
+                for (int j = i + 1; j < legTops.Length; j++)
+                    if (legTops[i].name.Contains("Humerus") == legTops[j].name.Contains("Humerus"))
+                        width = Mathf.Max(width, Vector3.Distance(legTops[i].position, legTops[j].position));
+            Vector3 front = Vector3.zero, rear = Vector3.zero;
+            int nf = 0, nr = 0;
+            for (int i = 0; i < legTops.Length; i++)
+                if (legTops[i].name.Contains("Humerus")) { front += legTops[i].position; nf++; }
+                else { rear += legTops[i].position; nr++; }
+            if (nf == 0 || nr == 0) return point;
+            front /= nf; rear /= nr;
+            Vector3 fallback = Vector3.ProjectOnPlane(ReachPoint - (front + rear) * .5f, Vector3.up).normalized;
+            if (fallback.sqrMagnitude < .1f) fallback = Vector3.forward;
+            for (int pass = 0; pass < 8; pass++)
+            {
+                point = OutsideCapsule(point, front, rear, width * .55f + .12f + radius + Clearance, fallback);
+                for (int i = 0; i < legTops.Length; i++)
+                    point = OutsideCapsule(point, legTops[i].position, legEnds[i].position,
+                        Mathf.Max(.16f, width * .19f) + radius + Clearance, fallback);
+            }
+            return point;
+        }
+
+        static Vector3 OutsideCapsule(Vector3 point, Vector3 a, Vector3 b, float radius, Vector3 fallback)
+        {
+            Vector3 segment = b - a;
+            float t = segment.sqrMagnitude > .000001f ? Mathf.Clamp01(Vector3.Dot(point - a, segment) / segment.sqrMagnitude) : 0;
+            Vector3 nearest = a + t * segment;
+            float dy = point.y - nearest.y;
+            float horizontalSquared = radius * radius - dy * dy;
+            if (horizontalSquared <= 0) return point;
+            Vector3 delta = Vector3.ProjectOnPlane(point - nearest, Vector3.up);
+            float minimum = Mathf.Sqrt(horizontalSquared);
+            if (delta.sqrMagnitude >= horizontalSquared) return point;
+            Vector3 direction = delta.sqrMagnitude > .000001f ? delta.normalized : fallback;
+            return point + direction * (minimum - delta.magnitude + .001f);
+        }
+
+        public Vector3 CarryPoint(float radius)
+        {
+            Vector3 end = trunkEnd ? trunkEnd.position : tip.position;
+            Vector3 direction = end - (tip.parent ? tip.parent.position : trunkParent.position);
+            if (direction.sqrMagnitude < .000001f) direction = Vector3.forward;
+            Vector3 point = end + direction.normalized * (radius + Clearance);
+            point.y = Mathf.Max(groundY, point.y);
+            return SeparateFromElephant(point, radius);
+        }
+
+        Vector3 SeparateCarry(Vector3 point, float radius)
+        {
+            for (int i = 0; i < 8; i++)
+                point = SeparateFromElephant(SeparateFromTrunk(point, radius), radius);
+            return point;
+        }
+
+        Vector3 SeparateFromTrunk(Vector3 point, float radius)
+        {
+            // The acquisition interpolation must not travel through the trunk itself.
+            for (int pass = 0; pass < 4; pass++)
+                for (int i = 1; i < trunk.bones.Length; i++)
+                    point = OutsideCapsule(point, trunk.bones[i-1].position, trunk.bones[i].position,
+                        radius + .1f + Clearance, Vector3.forward);
+            return point;
+        }
 
         // Where the trunk tip is when the trunk hangs at rest, whatever the trunk is doing now.
         public Vector3 ReachPoint => trunkParent ? trunkParent.TransformPoint(restTip) : tip.position;
@@ -164,6 +257,7 @@ namespace StudentWork
             overlay = ClipOverlay.For(controller);
             if (!eatClip) eatClip = controller.GetComponent<P2EatingRole>()?.eatClip;
             if (!eatClip && overlay != null) eatClip = overlay.Find("eat");
+            BindCollisionRig(controller);
             return tip;
         }
 
@@ -196,9 +290,10 @@ namespace StudentWork
                 elapsed += dt;
                 float time = Mathf.Min(elapsed, eatSeconds);
                 overlay?.Pose(eatClip, clipStart + time, ClipOverlay.Weight(time, eatSeconds, blend));
-                transform.position = tip.position;
-                // The melon shrinks into the mouth as the trunk arrives there.
-                transform.localScale = fullScale * Mathf.Clamp01((swallowAt - elapsed) / .25f);
+                // Keep the full fruit outside the skin. Only the shrinking final bite enters the mouth.
+                float biteScale = Mathf.Clamp01((swallowAt - elapsed) / .25f);
+                transform.localScale = fullScale * biteScale;
+                transform.position = SeparateCarry(CarryPoint(CollisionRadius), CollisionRadius);
                 if (elapsed >= swallowAt) GetComponent<Renderer>().enabled = false;
                 if (elapsed < eatSeconds) return;
                 Eating = Held = false; ClipOverlay.Release(this);
@@ -212,10 +307,11 @@ namespace StudentWork
             {
                 // Rises from where it lay to the trunk tip over a quarter of a second, then rides on the tip.
                 carried += dt;
-                transform.position = Vector3.Lerp(grabbedFrom, tip.position, Mathf.SmoothStep(0, 1, carried / .25f));
+                Vector3 carriedPoint = Vector3.Lerp(grabbedFrom, CarryPoint(CollisionRadius), Mathf.SmoothStep(0, 1, carried / .25f));
+                transform.position = SeparateCarry(carriedPoint, CollisionRadius);
                 lifted = curl >= eatCurl ? lifted + dt : 0;
                 if (lifted >= eatDelay && ClipOverlay.Owns(this) && eatClip && overlay != null) { Eating = true; elapsed = 0; lifted = 0; overlay?.Begin(); FindAnyObjectByType<DigiPhantLocomotion>()?.StopMotion(); }
-                else if (curl < releaseCurl) { Held = false; ClipOverlay.Release(this); fallSpeed = 0; }
+                else if (curl < releaseCurl) { Held = false; ClipOverlay.Release(this); fallSpeed = 0; transform.position = SeparateFromElephant(transform.position, CollisionRadius); }
                 return;
             }
             // Not held: fall to the ground where it was let go, then wait to be picked up.
@@ -226,6 +322,8 @@ namespace StudentWork
                 position.y = Mathf.Max(groundY, position.y - fallSpeed * dt);
                 transform.position = position;
             }
+            position = SeparateFromElephant(position, CollisionRadius);
+            transform.position = position;
             Vector3 gap = ReachPoint - position;
             gap.y = 0;
             Distance = gap.magnitude;
