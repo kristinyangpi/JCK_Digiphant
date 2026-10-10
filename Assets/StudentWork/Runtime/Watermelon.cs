@@ -201,7 +201,7 @@ namespace StudentWork
                 transform.localScale = fullScale * Mathf.Clamp01((swallowAt - elapsed) / .25f);
                 if (elapsed >= swallowAt) GetComponent<Renderer>().enabled = false;
                 if (elapsed < eatSeconds) return;
-                Eating = Held = ClipOverlay.Busy = false;
+                Eating = Held = false; ClipOverlay.Release(this);
                 Eaten = true;
                 EatenCount++;
                 gone = 0;
@@ -214,8 +214,8 @@ namespace StudentWork
                 carried += dt;
                 transform.position = Vector3.Lerp(grabbedFrom, tip.position, Mathf.SmoothStep(0, 1, carried / .25f));
                 lifted = curl >= eatCurl ? lifted + dt : 0;
-                if (lifted >= eatDelay && !ClipOverlay.Busy && eatClip && overlay != null) { Eating = ClipOverlay.Busy = true; elapsed = 0; lifted = 0; overlay?.Begin(); FindAnyObjectByType<DigiPhantLocomotion>()?.StopMotion(); }
-                else if (curl < releaseCurl) { Held = false; fallSpeed = 0; }
+                if (lifted >= eatDelay && ClipOverlay.Owns(this) && eatClip && overlay != null) { Eating = true; elapsed = 0; lifted = 0; overlay?.Begin(); FindAnyObjectByType<DigiPhantLocomotion>()?.StopMotion(); }
+                else if (curl < releaseCurl) { Held = false; ClipOverlay.Release(this); fallSpeed = 0; }
                 return;
             }
             // Not held: fall to the ground where it was let go, then wait to be picked up.
@@ -231,7 +231,7 @@ namespace StudentWork
             Distance = gap.magnitude;
             InReach = Distance <= pickupRange;
             // One melon at a time: if two are in reach, the nearer one is taken.
-            if (InReach && curl >= grabCurl && this == Focus()) { Held = true; lifted = carried = 0; grabbedFrom = position; }
+            if (InReach && curl >= grabCurl && this == Focus() && !(FindAnyObjectByType<StudentFlight>()?.SuppressTravel ?? false) && ClipOverlay.TryAcquire(this)) { Held = true; lifted = carried = 0; grabbedFrom = position; }
         }
 
         // The melon the trunk is dealing with: the one being carried or eaten, otherwise the nearest one not yet eaten.
@@ -256,7 +256,7 @@ namespace StudentWork
             return gap.magnitude;
         }
 
-        void OnDisable() { if (Eating) ClipOverlay.Busy = false; Eating = Held = false; }
+        void OnDisable() { ClipOverlay.Release(this); Eating = Held = false; }
 
         void OnGUI()
         {

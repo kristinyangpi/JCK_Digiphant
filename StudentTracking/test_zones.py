@@ -90,8 +90,8 @@ class ZoneTests(unittest.TestCase):
                 pass
             def putText(self, frame, label, anchor, *args):
                 self.labels.append((label, anchor[0]))
-        for mirrored, expected in ((True, ['P1 DRIVER', 'P2 EAT', 'P3 UNUSED']),
-                                   (False, ['P3 UNUSED', 'P2 EAT', 'P1 DRIVER'])):
+        for mirrored, expected in ((True, ['P1 DRIVER', 'P2 EAT', 'P3 LOLLI/FLAP']),
+                                   (False, ['P3 LOLLI/FLAP', 'P2 EAT', 'P1 DRIVER'])):
             drawing = Drawing()
             draw_zones(SimpleNamespace(shape=(480, 640, 3)), drawing, mirrored)
             self.assertEqual([label for label, _ in drawing.labels], expected)

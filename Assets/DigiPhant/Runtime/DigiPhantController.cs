@@ -16,6 +16,7 @@ namespace DigiPhant
         public float mouthOpen, mouthConfidence;
         public float[] values;
         public float[] confidence;
+        public float[] flap;
         public float[] handDepth, handDepthConfidence, palmFacing, palmConfidence, handScale, handScaleConfidence;
     }
     [Serializable] public class PoseFrame
@@ -84,6 +85,7 @@ namespace DigiPhant
         float calibrationDeadline = -1;
         public bool CalibrationPending => calibrationDeadline >= 0;
         readonly float[,] values = new float[4, 6];
+        readonly float[,] flap = new float[4, 4];
         readonly float[,] confidence = new float[4, 6];
         readonly float[,] neutral = new float[4, 6];
         readonly float[,] handScale = new float[4, 2], handScaleConfidence = new float[4, 2];
@@ -188,6 +190,7 @@ namespace DigiPhant
         }
         void ClearHandValidity()
         {
+            Array.Clear(flap, 0, flap.Length);
             Array.Clear(mouthOpen, 0, mouthOpen.Length);
             Array.Clear(mouthConfidence, 0, mouthConfidence.Length);
             Array.Clear(handScaleConfidence, 0, handScaleConfidence.Length);
@@ -213,6 +216,18 @@ namespace DigiPhant
                 if (!Finite(values[i]) || !Finite(confidence[i]) || confidence[i] < 0 || confidence[i] > 1) return false;
             return true;
         }
+        static bool ValidFlap(float[] f) {
+            if (f == null || f.Length == 0) return true;
+            return f.Length == 4 && Array.TrueForAll(f, Finite) && f[2] >= 0 && f[2] <= 1 && f[3] >= 0 && f[3] <= 1;
+        }
+        public bool TryReadFlap(int slot, float now, out float left, out float right, out bool sideways) {
+            left = right = 0; sideways = false;
+            if (!IsTracked(slot, now)) return false;
+            int i = slot - 1;
+            if (flap[i,3] < minimumConfidence) return false;
+            left = flap[i,0]; right = flap[i,1]; sideways = flap[i,2] >= .5f;
+            return true;
+        }
         bool AcceptPacketChecked(string json, float now)
         {
             PoseFrame frame;
@@ -236,6 +251,7 @@ namespace DigiPhant
             {
                 if (p == null || p.slot < 1 || p.slot > 4 || !slots.Add(p.slot) ||
                     p.values == null || p.confidence == null || p.values.Length != 6 || p.confidence.Length != 6) return RejectPacket("Invalid performer slot or feature arrays", now);
+                if (!ValidFlap(p.flap)) return RejectPacket("Invalid flap array", now);
                 if (!Finite(p.mouthOpen) || p.mouthOpen < 0 || p.mouthOpen > 3 || !Finite(p.mouthConfidence) || p.mouthConfidence < 0 || p.mouthConfidence > 1) return RejectPacket("Invalid mouth value or confidence", now);
                 if (!ValidPair(p.handDepth, p.handDepthConfidence) || !ValidPair(p.palmFacing, p.palmConfidence) || !ValidPair(p.handScale, p.handScaleConfidence)) return RejectPacket("Invalid hand arrays or confidence", now);
                 for (int k = 0; k < 6; k++)
@@ -252,6 +268,7 @@ namespace DigiPhant
             {
                 int i = p.slot - 1;
                 lastSeen[i] = now;
+                if (p.flap != null && p.flap.Length == 4) for (int k = 0; k < 4; k++) flap[i,k] = p.flap[k];
                 mouthOpen[i] = p.mouthOpen; mouthConfidence[i] = p.mouthConfidence;
                 for (int k = 0; k < 6; k++)
                 { values[i, k] = Mathf.Clamp(p.values[k], -3, 3); confidence[i, k] = p.confidence[k]; }
@@ -520,7 +537,7 @@ namespace DigiPhant
             {
                 var navigation = GetComponent<DigiPhantDriverNavigation>();
                 if (navigation && navigation.isActiveAndEnabled && navigation.enableDriverNavigation)
-                    Label(GetComponent<P2EatingRole>()?.RoleEnabled == true ? "P1 drives with hands. P2 opens their mouth to pick up and eat. P3 is unassigned." : "Keep shoulders and wrists visible. Driver hand controls below operate travel; other body mappings are unchanged.");
+                    Label(GetComponent<P2EatingRole>()?.RoleEnabled == true ? (GetComponent<StudentWork.LollipopPickup>() ? "P1 drives. P2 opens their mouth to eat watermelon. P3 shows the lollipop card; after two candies, flaps to fly." : "P1 drives with hands. P2 opens their mouth to pick up and eat. P3 is unassigned.") : "Keep shoulders and wrists visible. Driver hand controls below operate travel; other body mappings are unchanged.");
                 else Label("Keep shoulders and hands visible. Raise hands for legs; tilt shoulders for steering, head and tail. Solo: left hand also drives travel; right hand curls trunk.");
             }
             int mode = GUILayout.Toolbar((int)inputMode, new[] { "Test sliders", "Camera" });

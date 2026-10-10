@@ -166,7 +166,9 @@ namespace DigiPhant
                 bool turning = steering.TryRead(controller, now, out desiredTurn);
                 valid = moving && turning;
             }
-            if (StudentWork.ClipOverlay.Busy) { valid = false; desiredForward = desiredTurn = 0; }
+            var flight = GetComponent<StudentWork.StudentFlight>();
+            if (flight && flight.isActiveAndEnabled) flight.PollPose(now);
+            if (StudentWork.ClipOverlay.BlocksTravel || (flight && flight.isActiveAndEnabled && flight.SuppressTravel)) { valid = false; desiredForward = desiredTurn = 0; }
             if (!valid) { throttle = turn = 0; }
             else
             {
@@ -212,7 +214,8 @@ namespace DigiPhant
                     CurrentAction += " · stage edge";
                 }
             }
-            destination.y = startPosition.y;
+            destination.y = travelRoot.position.y;
+            destination = flight && flight.isActiveAndEnabled ? flight.ApplyHeight(destination, startPosition.y, dt) : new Vector3(destination.x, startPosition.y, destination.z);
             travelRoot.position = destination;
             if (followElephant && followCamera) followCamera.transform.position = destination + cameraOffset;
             return true;
@@ -221,6 +224,7 @@ namespace DigiPhant
         {
             if (!Initialise()) return;
             StopMotion();
+            GetComponent<StudentWork.StudentFlight>()?.GroundReset();
             travelRoot.SetPositionAndRotation(startPosition, startRotation);
             if (followCamera) followCamera.transform.position = cameraStart;
             controller.InvalidateCalibration();

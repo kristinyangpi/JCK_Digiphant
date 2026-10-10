@@ -1,4 +1,5 @@
 from mouth_tracking import match_mouths
+from p3_tracking import P3CardChannel, flap_features
 """DigiPhant camera -> local Unity UDP bridge. Run with --help for setup options."""
 import argparse
 from contextlib import ExitStack
@@ -223,7 +224,7 @@ def create_tracker(count):
 def draw_zones(frame, cv2, mirrored=True):
     """Draw after flipping the frame so labels remain readable in both views."""
     h, w = frame.shape[:2]
-    labels = ['P1 DRIVER', 'P2 EAT', 'P3 UNUSED']
+    labels = ['P1 DRIVER', 'P2 EAT', 'P3 LOLLI/FLAP']
     if not mirrored:
         labels.reverse()
     line_width = max(1, round(w / 320))
@@ -231,7 +232,7 @@ def draw_zones(frame, cv2, mirrored=True):
         x = round(w * fraction)
         cv2.line(frame, (x, 0), (x, h - 1), (0, 0, 0), line_width + 2, cv2.LINE_AA)
         cv2.line(frame, (x, 0), (x, h - 1), (255, 255, 255), line_width, cv2.LINE_AA)
-    font_scale = max(.3, w / 800)
+    font_scale = max(.25, w / 1100)
     thickness = max(1, round(w / 640))
     for column, label in enumerate(labels):
         (text_width, text_height), baseline = cv2.getTextSize(
@@ -287,8 +288,8 @@ def main():
     parser.add_argument('--hand-model', type=Path, default=Path(__file__).parent / 'hand_landmarker.task')
     parser.add_argument('--download-model', action='store_true', help='Download the official model if missing')
     args = parser.parse_args()
-    if not 1024 <= args.port <= 65533:
-        parser.error('--port must be between 1024 and 65533')
+    if not 1024 <= args.port <= 65532:
+        parser.error('--port must be between 1024 and 65532')
     if not args.model.exists():
         if not args.download_model:
             parser.error('Model missing. Run again with --download-model (internet required).')
@@ -299,6 +300,8 @@ def main():
         urllib.request.urlretrieve(MODEL_URL, temporary)
         temporary.replace(args.model)
     import cv2
+    from reference_verifier import PrintedReferenceVerifier
+    verifier = PrintedReferenceVerifier(Path(__file__).parent / "lollipop.png")
     import mediapipe as mp
     from mediapipe.tasks import python
     from mediapipe.tasks.python import vision
@@ -320,6 +323,7 @@ def main():
         camera.release()
         sender.close()
         raise SystemExit('Another camera bridge is already running. Close its preview with Q first.')
+    card_channel = P3CardChannel(verifier, sender, args.port)
     edges = [(11, 12), (11, 23), (12, 24), (23, 24), (11, 13), (13, 15),
              (12, 14), (14, 16), (23, 25), (25, 27), (24, 26), (26, 28),
              (27, 29), (29, 31), (27, 31), (28, 30), (30, 32), (28, 32),
@@ -327,7 +331,7 @@ def main():
     colors = [(100, 230, 100), (255, 180, 80), (100, 160, 255), (220, 100, 230)]
     previous_timestamp = -1
     last_preview = 0.0
-    print('Three-person mode: mirrored LEFT P1 DRIVER, CENTER P2 EAT, RIGHT P3 UNUSED. Stay clear of boundaries.')
+    print('Three-person mode: mirrored LEFT P1 DRIVER, CENTER P2 EAT, RIGHT P3 LOLLIPOP / FLAP. Stay clear of boundaries.')
     print('One-person mode auto-tracks; two/four-person modes keep position tracking. Roles belong to zones in three-person mode.')
     print('R: reset tracking (then recalibrate in Unity). Q: quit.')
     try:
@@ -379,7 +383,8 @@ def main():
                         tracker = create_tracker(count)
                         print(f'Unity selected {count} people. Reassigning; set neutral pose in Unity.')
                 ok, frame = camera.read()
-                if not ok:
+                if not ok or frame is None or frame.size == 0:
+                    card_channel.close()
                     raise RuntimeError('Camera stopped delivering frames.')
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 timestamp = max(previous_timestamp + 1, time.monotonic_ns() // 1_000_000)
@@ -417,6 +422,9 @@ def main():
                 # Solo recovery requires exactly one detected body, including low-confidence bystanders.
                 centers = [o[0] for o in observations]
                 assignments = tracker.assign([] if args.people == 1 and len(result.pose_landmarks) != 1 else centers)
+                card_channel.update(frame, assignments, args.people, time.monotonic())
+                for slot, index in assignments.items():
+                    observations[index][4]['flap'] = flap_features(observations[index][3]) if args.people == 3 and slot == 3 else [0., 0., 0., 0.]
                 packet = {'version': 1, 'trackingEpoch': tracker.epoch, 'performerCount': args.people, 'upperBodyOnly': args.upper_body_only, 'people': [dict(slot=slot, values=observations[i][1], confidence=observations[i][2], **observations[i][4])
                                                  for slot, i in assignments.items()]}
                 sender.sendto(json.dumps(packet, allow_nan=False).encode(), ('127.0.0.1', args.port))
@@ -479,10 +487,13 @@ def main():
                 if key == ord('r'):
                     tracker.reset()
     finally:
-        sender.sendto(b'{"version":1,"people":[]}', ('127.0.0.1', args.port))
-        sender.close()
-        camera.release()
-        cv2.destroyAllWindows()
+        try:
+            card_channel.close()
+            sender.sendto(b'{"version":1,"people":[]}', ('127.0.0.1', args.port))
+        finally:
+            sender.close()
+            camera.release()
+            cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':

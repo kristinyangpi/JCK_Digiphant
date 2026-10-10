@@ -10,9 +10,17 @@ namespace StudentWork
     public class ClipOverlay
     {
         // Only one overlaid action (eating, drinking) at a time.
-        public static bool Busy;
+        static object owner;
+        public static bool Busy => owner != null;
+        public static bool BlocksTravel => owner is Watermelon melon ? melon.Eating : Busy;
+        public static bool Owns(object candidate) => ReferenceEquals(owner, candidate);
+        public static bool TryAcquire(object candidate) {
+            if (candidate == null || (Busy && !Owns(candidate))) return false;
+            owner = candidate; return true;
+        }
+        public static void Release(object candidate) { if (Owns(candidate)) owner = null; }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ClearBusy() => Busy = false;
+        static void ClearBusy() => owner = null;
 
         Transform rig;
         Transform[] bones;

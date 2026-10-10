@@ -86,11 +86,11 @@ namespace DigiPhant.Editor
             Check(loco.CurrentSpeed>0, "navigation no longer moves");
             Vector3 pos=loco.travelRoot.position;
             Quaternion rot=loco.travelRoot.rotation;
-            ClipOverlay.Busy=true;
+            var eatingOwner=new object(); ClipOverlay.TryAcquire(eatingOwner);
             Packet(3.6f,height:0); c.ApplyControls(3.6f,.1f);
             Check(loco.CurrentSpeed==0 && loco.travelRoot.position==pos && Quaternion.Angle(loco.travelRoot.rotation,rot)<.001f && nav.IsCalibrated,
                 "eating moved root or erased driver calibration");
-            ClipOverlay.Busy=false;
+            ClipOverlay.Release(eatingOwner);
             Packet(3.7f,height:0); c.ApplyControls(3.7f,.1f);
             Check(loco.CurrentSpeed>0 && nav.IsCalibrated,"navigation did not resume");
             var melon=Watermelon.Spawn();
