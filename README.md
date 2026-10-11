@@ -32,7 +32,7 @@ The mirrored camera preview is divided into fixed zones: **left = P1 driver; cen
 - P3 shows the specific printed [lollipop reference](StudentTracking/lollipop.png) to collect a nearby candy. The first eaten candy adds a birthday hat; the second enlarges the ears and unlocks synchronized sideways arm flapping for vertical flight. Stop flapping to land slowly.
 - P2 and P3 share exclusive trunk ownership. Candy pickup and flight pause horizontal travel without clearing P1 calibration.
 
-The existing scene, pink elephant, earrings, camera placement, and navigation are retained. The floating candy backdrop below adds scenery around the original course; no finish dance was imported.
+The existing scene, pink elephant, earrings, camera placement, and navigation are retained. The course now has floating candy platforms and a ribbon/confetti finish celebration; no full finish dance was imported.
 
 P2 is adapted from https://github.com/celenashen04-boop/JCK_digiphant/tree/digiphant-integration (eating/animation overlay only). P3 is adapted from https://github.com/kristinyangpi/JCK_Digiphant at main commit `66065793cfe581f3648e31c7e16ac499ad48d623` (printed-card verification, candy rewards, and vertical flight only).
 
@@ -40,15 +40,19 @@ P2 is adapted from https://github.com/celenashen04-boop/JCK_digiphant/tree/digip
 
 Fix `291324e` keeps loose watermelons clear of the animated legs and torso, offsets carried fruit from the trunk tip, and checks clearance when fruit is released. Navigation controls are unchanged.
 
-## Floating candy backdrop
+## Floating candy course and finish
 
-The original Savannah route is retained, including its mesh, height, object positions, and P1/P2/P3 control settings. Visual-only decorations from Yangpi's **Candy Wonderland** surround it. The castle and three clouds are positioned in the starting Game camera view, so decorations are visible immediately. Other cloud islands, waterfalls, candy bridges, and balloons remain around the course and become visible as you travel. The skybox is changed without moving the existing camera.
+The saved scene uses candy-colored roads, cloud platforms and bridge-like supports. The original broad ground, Stage and grid are hidden. Watermelon, lollipop, pond, log and finish interaction positions retain their original transforms and ground height. Navigation and P1/P2/P3 controls are unchanged. There is no new edge constraint or falling physics: the elephant can still move beyond visible platforms within the existing navigation boundary.
 
-This imports artwork from `kristinyangpi/JCK_Digiphant` commit `66065793cfe581f3648e31c7e16ac499ad48d623`, not its elevated route or gameplay. The decoration root `Yangpi - Floating Candy Backdrop` contains no colliders or gameplay scripts. Bridges are background scenery, not a new route.
+Walk through the finish ribbon in the course direction to trigger confetti and YOU FINISHED! once. No flight is required. The celebration does not take control or clear P1 calibration. After leaving the start by more than 6 units, returning within 2 units resets the celebration for another run. The full ballet sequence is not included.
 
-The installer `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` and temporary source scene are local maintenance tools, not included in the shared repository. The shared scene and its used art assets contain the installed backdrop. The original pre-backdrop backup is `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`. The current Game-camera preview is `Logs/Backdrop-visible-game.png`; the wider overview is `Logs/CandyBackdrop-overview.png`.
+Artwork is adapted from `kristinyangpi/JCK_Digiphant` commit `66065793cfe581f3648e31c7e16ac499ad48d623`. `CourseFinishCelebration` takes inspiration from its `RibbonFinish`, adapted to this walking route. The existing decorative castle, clouds, waterfalls and balloons remain. The shared scene and `FloatingCourse` assets contain the installed result; local installation/polish helpers are not shared and should not be rerun.
+
+Pre-change backup: `Logs/DigiPhant-before-floating-route-20261011-094319.unity`. Local previews: `Logs/FloatingCourse-game.png`, `Logs/FloatingCourse-overview.png`, and `Logs/FloatingCourse-finish.png`.
 
 ## Verification and backup
+
+Latest checks passed with Unity exit code 0 in `Logs/FloatingCoursePolish.log`: `FLOATING_POLISH_AND_FINISH_RESET_OK`, `WATERMELON_ALL_CHECKS_PASSED`, and `FLOATING_FINAL_ALL_CHECKS_PASSED`. Checks cover directed/in-range crossing, fast crossing, reset and retrigger, plus existing interaction regressions. Earlier backdrop results below describe the previous visual versions. A live three-person full-course run has not been verified.
 
 The visibility adjustment passed with Unity exit code 0 in `Logs/BackdropVisibilityVerified.log` (`BACKDROP_VISIBILITY_OK`). It moves the castle and three clouds into the starting view while preserving the original route, controls, and camera transform. Backup: `Logs/DigiPhant-before-visible-backdrop-20261010-215419.unity`. The visibility helper is a local maintenance tool and is not shared.
 

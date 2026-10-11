@@ -38,17 +38,23 @@ P1 开到喂食灌木或水盆附近的西瓜旁。P2 张嘴抓取，张大嘴�
 5. 解锁后，P3 双臂向两侧伸展，同时上下挥动。静止展开或只动一只手不会触发持续飞行。肩膀、肘部和手腕尽量完整出镜。
 6. 飞行仅垂直升降，最高距起始地面 2.2 单位。停止挥臂或失去追踪后缓慢落地；落地并收回展开的双臂后，P1 可继续驾驶。
 
-P2 持瓜或吃瓜时，P3 不能抢用象鼻；P3 吃糖期间也不接受 P2 抓取。吃糖及飞行暂停水平移动，但不清除 P1 校准。飞行期间不能开始新的抓取。糖果背景仅作视觉装饰；没有导入来源项目的高架路线、终点舞蹈、喷水或喝水功能。
+P2 持瓜或吃瓜时，P3 不能抢用象鼻；P3 吃糖期间也不接受 P2 抓取。吃糖及飞行暂停水平移动，但不清除 P1 校准。飞行期间不能开始新的抓取。漂浮路线保留原交互点位和地面高度；终点新增彩带与彩纸庆祝，没有导入完整舞蹈、喷水或喝水功能。
 
-## 漂浮糖果背景：原路线保留
+## 漂浮糖果路线与终点庆祝
 
-沿用原 Savannah 路线、地面高度和物体位置，P1/P2/P3 操作方法不变。城堡和三朵云已放入起点的 Game 摄像机视野，进入场景即可看到。其余云岛、瀑布、装饰桥和气球分布在路线周边，沿路线移动时可看到更多装饰。背景换为糖果世界天空，原摄像机位置与朝向不变。桥只作装饰，不需要改走桥上。
+原路线换为糖果色路面、云岛平台和桥式支撑；原大地面、Stage 和网格隐藏。西瓜、棒棒糖、水坑、木头及终点的原有交互位置和地面高度不变，P1/P2/P3 操作不变。周围保留 Yangpi 的城堡、云、瀑布和气球装饰。
 
-背景来自 Yangpi 的 Candy Wonderland 美术资源；没有导入其高架路线或游戏逻辑。新增根节点 `Yangpi - Floating Candy Backdrop` 不含碰撞体或玩法脚本。
+沿原路线从来路方向穿过终点彩带，会出现一次彩纸庆祝和 YOU FINISHED!。可以步行通过，无需飞行；庆祝不会接管操作、锁定移动或清除 P1 校准。离开起点超过 6 单位后，回到起点 2 单位内会自动重置庆祝，便于重跑。未导入完整终点舞蹈。
 
-安装器 `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` 及临时来源场景仅作本地维护，不随仓库共享；共享版本包含已安装背景的场景和实际使用的美术资源。添加背景前的原场景备份是 `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`。当前 Game 视角预览：`Logs/Backdrop-visible-game.png`；整体预览：`Logs/CandyBackdrop-overview.png`。
+漂浮外观没有新增边缘限制或坠落物理，仍使用原有导航范围和地面高度；大象可能走出可见道路。木头仍应绕行。
+
+美术来自 Yangpi 的 Candy Wonderland；终点 `CourseFinishCelebration` 参考其 `RibbonFinish` 的彩带与彩纸思路，改为现有路线的定向步行触发。场景和 `FloatingCourse` 资源已保存，安装及润色工具仅用于本地维护，不随仓库共享，也不应重复运行。
+
+改动前备份：`Logs/DigiPhant-before-floating-route-20261011-094319.unity`。预览：`Logs/FloatingCourse-game.png`、`Logs/FloatingCourse-overview.png`、`Logs/FloatingCourse-finish.png`。Logs 文件仅保存在本地。
 
 ## 验证与来源
+
+最新漂浮路线检查：`Logs/FloatingCoursePolish.log` 包含 `FLOATING_POLISH_AND_FINISH_RESET_OK`、`WATERMELON_ALL_CHECKS_PASSED` 和 `FLOATING_FINAL_ALL_CHECKS_PASSED`，Unity 退出码为 0。覆盖终点方向／范围、快速穿越、返回起点后再次庆祝及已有交互回归。以下背景记录是此前版本的验证历史；尚未完成真人三人全程测试。
 
 起点可见性修复已通过：`Logs/BackdropVisibilityVerified.log` 包含 `BACKDROP_VISIBILITY_OK`，Unity 退出码为 0。仅调整城堡和三朵云的位置，原路线、控制设置及摄像机变换保持不变。修复前备份：`Logs/DigiPhant-before-visible-backdrop-20261010-215419.unity`。可见性维护工具仅保留在本地，不随仓库共享。
 

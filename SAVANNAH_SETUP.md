@@ -1,5 +1,9 @@
 # Savannah Course installation — 2026-10-08
 
+> Historical installation record below. For current controls, use DRIVER_NAVIGATION.md. The current stage radius is 30, not the original 15 described below. The scene now has floating candy platforms and a directed walking finish celebration. Original interaction positions and ground height are preserved; broad ground/Stage renderers are hidden. Navigation has no added platform-edge or falling constraint.
+>
+> Latest validation: Logs/FloatingCoursePolish.log, FLOATING_FINAL_ALL_CHECKS_PASSED, exit 0. Pre-change scene backup: Logs/DigiPhant-before-floating-route-20261011-094319.unity (local only). Open Assets/DigiPhant/Scenes/DigiPhant.unity; installation/polish helpers are local maintenance tools, not a repeatable setup procedure.
+
 - Project: D:/Project_mdes/TM_PE/JACK_Digiphant
 - Unity: 6000.6.3f1; URP 17.6.0 (active quality pipeline PC_RPAsset).
 - Source: https://github.com/kommanderpi/studentstarter, main commit 4e6dab5271c618d1c0bfb2022c41c0d37cd8d69f.
