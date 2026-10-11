@@ -42,13 +42,15 @@ Fix `291324e` keeps loose watermelons clear of the animated legs and torso, offs
 
 ## Floating candy backdrop
 
-The original Savannah route is retained, including its mesh, height, object positions, and P1/P2/P3 control settings. Visual-only decorations from Yangpi's **Candy Wonderland** surround it: cloud islands and waterfalls to the east, candy bridges to the west, a castle beyond the far end, and clouds/balloons overhead. The skybox is changed without moving the existing camera.
+The original Savannah route is retained, including its mesh, height, object positions, and P1/P2/P3 control settings. Visual-only decorations from Yangpi's **Candy Wonderland** surround it. The castle and three clouds are positioned in the starting Game camera view, so decorations are visible immediately. Other cloud islands, waterfalls, candy bridges, and balloons remain around the course and become visible as you travel. The skybox is changed without moving the existing camera.
 
 This imports artwork from `kristinyangpi/JCK_Digiphant` commit `66065793cfe581f3648e31c7e16ac499ad48d623`, not its elevated route or gameplay. The decoration root `Yangpi - Floating Candy Backdrop` contains no colliders or gameplay scripts. Bridges are background scenery, not a new route.
 
-The installer `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` and temporary source scene are local maintenance tools, not included in the shared repository. The shared scene and its used art assets contain the installed backdrop. The original pre-backdrop backup is `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`. Preview images are `Logs/CandyBackdrop-game.png` and `Logs/CandyBackdrop-overview.png`.
+The installer `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` and temporary source scene are local maintenance tools, not included in the shared repository. The shared scene and its used art assets contain the installed backdrop. The original pre-backdrop backup is `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`. The current Game-camera preview is `Logs/Backdrop-visible-game.png`; the wider overview is `Logs/CandyBackdrop-overview.png`.
 
 ## Verification and backup
+
+The visibility adjustment passed with Unity exit code 0 in `Logs/BackdropVisibilityVerified.log` (`BACKDROP_VISIBILITY_OK`). It moves the castle and three clouds into the starting view while preserving the original route, controls, and camera transform. Backup: `Logs/DigiPhant-before-visible-backdrop-20261010-215419.unity`. The visibility helper is a local maintenance tool and is not shared.
 
 Final backdrop checks passed with Unity exit code 0 in `Logs/CandyBackdropVerified.log`: `CANDY_BACKDROP_VALIDATION_OK`, `WATERMELON_ALL_CHECKS_PASSED`, and `CANDY_BACKDROP_ALL_CHECKS_PASSED`. Checks verify unchanged route geometry, original transforms and control configuration, decoration-only components, and watermelon/P1/P2/P3 regressions. This does not establish live-camera recognition reliability.
 

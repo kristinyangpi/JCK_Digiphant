@@ -42,13 +42,15 @@ P2 持瓜或吃瓜时，P3 不能抢用象鼻；P3 吃糖期间也不接受 P2 �
 
 ## 漂浮糖果背景：原路线保留
 
-沿用原 Savannah 路线、地面高度和物体位置，P1/P2/P3 操作方法不变。路线东侧添加云岛和瀑布，西侧添加装饰桥，远端添加城堡，上方添加云朵与气球。背景换为糖果世界天空，原摄像机位置与朝向不变。桥只作装饰，不需要改走桥上。
+沿用原 Savannah 路线、地面高度和物体位置，P1/P2/P3 操作方法不变。城堡和三朵云已放入起点的 Game 摄像机视野，进入场景即可看到。其余云岛、瀑布、装饰桥和气球分布在路线周边，沿路线移动时可看到更多装饰。背景换为糖果世界天空，原摄像机位置与朝向不变。桥只作装饰，不需要改走桥上。
 
 背景来自 Yangpi 的 Candy Wonderland 美术资源；没有导入其高架路线或游戏逻辑。新增根节点 `Yangpi - Floating Candy Backdrop` 不含碰撞体或玩法脚本。
 
-安装器 `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` 及临时来源场景仅作本地维护，不随仓库共享；共享版本包含已安装背景的场景和实际使用的美术资源。添加背景前的原场景备份是 `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`。预览图：`Logs/CandyBackdrop-game.png` 和 `Logs/CandyBackdrop-overview.png`。
+安装器 `StudentWork.Editor.YangpiBackgroundIntegration.BatchInstallAndValidate` 及临时来源场景仅作本地维护，不随仓库共享；共享版本包含已安装背景的场景和实际使用的美术资源。添加背景前的原场景备份是 `Logs/DigiPhant-before-floating-backdrop-20261010-162828.unity`。当前 Game 视角预览：`Logs/Backdrop-visible-game.png`；整体预览：`Logs/CandyBackdrop-overview.png`。
 
 ## 验证与来源
+
+起点可见性修复已通过：`Logs/BackdropVisibilityVerified.log` 包含 `BACKDROP_VISIBILITY_OK`，Unity 退出码为 0。仅调整城堡和三朵云的位置，原路线、控制设置及摄像机变换保持不变。修复前备份：`Logs/DigiPhant-before-visible-backdrop-20261010-215419.unity`。可见性维护工具仅保留在本地，不随仓库共享。
 
 背景最终检查已通过：`Logs/CandyBackdropVerified.log` 退出码为 0，包含 `CANDY_BACKDROP_VALIDATION_OK`、`WATERMELON_ALL_CHECKS_PASSED` 和 `CANDY_BACKDROP_ALL_CHECKS_PASSED`。确认原路线网格、已有物体变换和控制配置不变，新增背景只含装饰，并通过西瓜及 P1/P2/P3 回归检查。这不代表已完成真人摄像头测试。
 
