@@ -14,6 +14,7 @@ namespace DigiPhant
     {
         public int slot;
         public float mouthOpen, mouthConfidence;
+        public float headPitchDegrees, headConfidence;
         public float[] values;
         public float[] confidence;
         public float[] flap;
@@ -92,6 +93,8 @@ namespace DigiPhant
         readonly float[,] handDepth = new float[4, 2], handDepthConfidence = new float[4, 2];
         readonly float[,] palmFacing = new float[4, 2], palmConfidence = new float[4, 2];
         readonly float[] mouthOpen = new float[4], mouthConfidence = new float[4];
+        readonly float[] headPitchDegrees = new float[4], headConfidence = new float[4];
+        public string TrackingEpoch => trackingEpoch;
         string trackingEpoch;
         readonly float[] lastSeen = { -1000, -1000, -1000, -1000 };
         readonly Dictionary<Transform, Quaternion> rest = new Dictionary<Transform, Quaternion>();
@@ -191,6 +194,8 @@ namespace DigiPhant
         void ClearHandValidity()
         {
             Array.Clear(flap, 0, flap.Length);
+            Array.Clear(headPitchDegrees, 0, headPitchDegrees.Length);
+            Array.Clear(headConfidence, 0, headConfidence.Length);
             Array.Clear(mouthOpen, 0, mouthOpen.Length);
             Array.Clear(mouthConfidence, 0, mouthConfidence.Length);
             Array.Clear(handScaleConfidence, 0, handScaleConfidence.Length);
@@ -251,6 +256,7 @@ namespace DigiPhant
             {
                 if (p == null || p.slot < 1 || p.slot > 4 || !slots.Add(p.slot) ||
                     p.values == null || p.confidence == null || p.values.Length != 6 || p.confidence.Length != 6) return RejectPacket("Invalid performer slot or feature arrays", now);
+                if (!Finite(p.headPitchDegrees) || Mathf.Abs(p.headPitchDegrees) > 90 || !Finite(p.headConfidence) || p.headConfidence < 0 || p.headConfidence > 1) return RejectPacket("Invalid head pitch or confidence", now);
                 if (!ValidFlap(p.flap)) return RejectPacket("Invalid flap array", now);
                 if (!Finite(p.mouthOpen) || p.mouthOpen < 0 || p.mouthOpen > 3 || !Finite(p.mouthConfidence) || p.mouthConfidence < 0 || p.mouthConfidence > 1) return RejectPacket("Invalid mouth value or confidence", now);
                 if (!ValidPair(p.handDepth, p.handDepthConfidence) || !ValidPair(p.palmFacing, p.palmConfidence) || !ValidPair(p.handScale, p.handScaleConfidence)) return RejectPacket("Invalid hand arrays or confidence", now);
@@ -269,6 +275,7 @@ namespace DigiPhant
                 int i = p.slot - 1;
                 lastSeen[i] = now;
                 if (p.flap != null && p.flap.Length == 4) for (int k = 0; k < 4; k++) flap[i,k] = p.flap[k];
+                headPitchDegrees[i] = p.headPitchDegrees; headConfidence[i] = p.headConfidence;
                 mouthOpen[i] = p.mouthOpen; mouthConfidence[i] = p.mouthConfidence;
                 for (int k = 0; k < 6; k++)
                 { values[i, k] = Mathf.Clamp(p.values[k], -3, 3); confidence[i, k] = p.confidence[k]; }
@@ -450,6 +457,18 @@ namespace DigiPhant
             Status = "Neutral pose saved";
             return true;
         }
+        // Source face mesh convention: positive pitch is down. Only fixed P2 may use it.
+        public bool TryReadHeadPitch(int slot, float now, out float value)
+        {
+            value = 0;
+            if (slot != 2 || performerCount != 3 || inputMode != InputMode.Camera ||
+                GetComponent<P2EatingRole>()?.RoleEnabled != true || !Finite(now)) return false;
+            int i = slot - 1;
+            if (now < lastSeen[i] || now - lastSeen[i] > trackingTimeout ||
+                headConfidence[i] <= 0 || headConfidence[i] < minimumConfidence) return false;
+            value = headPitchDegrees[i];
+            return true;
+        }
         public bool TryReadMouthOpen(int slot, float now, out float value)
         {
             value = 0;
@@ -537,7 +556,7 @@ namespace DigiPhant
             {
                 var navigation = GetComponent<DigiPhantDriverNavigation>();
                 if (navigation && navigation.isActiveAndEnabled && navigation.enableDriverNavigation)
-                    Label(GetComponent<P2EatingRole>()?.RoleEnabled == true ? (GetComponent<StudentWork.LollipopPickup>() ? "P1 drives. P2 opens their mouth to eat watermelon. P3 shows the lollipop card; after two candies, flaps to fly." : "P1 drives with hands. P2 opens their mouth to pick up and eat. P3 is unassigned.") : "Keep shoulders and wrists visible. Driver hand controls below operate travel; other body mappings are unchanged.");
+                    Label(GetComponent<P2EatingRole>()?.RoleEnabled == true ? (GetComponent<StudentWork.LollipopPickup>() ? "P1 drives. P2 uses mouth to eat and head tilt to drink/spray. P3 shows the lollipop card; after two candies, flaps to fly." : "P1 drives with hands. P2 opens their mouth to pick up and eat. P3 is unassigned.") : "Keep shoulders and wrists visible. Driver hand controls below operate travel; other body mappings are unchanged.");
                 else Label("Keep shoulders and hands visible. Raise hands for legs; tilt shoulders for steering, head and tail. Solo: left hand also drives travel; right hand curls trunk.");
             }
             int mode = GUILayout.Toolbar((int)inputMode, new[] { "Test sliders", "Camera" });
@@ -550,7 +569,7 @@ namespace DigiPhant
                     Label("Performer " + i + (IsTracked(i, Time.realtimeSinceStartup) ? " · visible" : " · waiting / lost"));
                 Label(TrackingStatus);
                 bool fixedEatingRoles = GetComponent<P2EatingRole>()?.RoleEnabled == true;
-                if (fixedEatingRoles) Label("P2 mouth: open to grab, open wider to eat, close to drop. Body neutral is not required.");
+                if (fixedEatingRoles) Label("P2: mouth to grab/eat; close to drop. Near the log, open mouth to eat it. Look straight for 2 seconds, then tilt down to drink or up to spray.");
                 if (!fixedEatingRoles && !IsCalibrated) Label("Set neutral pose for body gestures. Driver navigation has its own calibration above.");
                 if (CalibrationPending)
                 {

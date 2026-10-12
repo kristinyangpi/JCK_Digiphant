@@ -1,4 +1,4 @@
-from mouth_tracking import match_mouths
+from mouth_tracking import match_mouths, match_heads
 from p3_tracking import P3CardChannel, flap_features
 """DigiPhant camera -> local Unity UDP bridge. Run with --help for setup options."""
 import argparse
@@ -398,11 +398,14 @@ def main():
                                                hand_result.hand_landmarks, hand_result.hand_world_landmarks,
                                                aspect=frame.shape[1]/frame.shape[0])
                 mouths = {}
+                heads = {}
                 if face_detector is not None and args.people == 3:
                     face_result = face_detector.detect_for_video(
                         mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb), timestamp)
                     mouths = match_mouths(result.pose_landmarks, face_result.face_landmarks,
                                           aspect=frame.shape[1]/frame.shape[0], zoned=True)
+                    heads = match_heads(result.pose_landmarks, face_result.face_landmarks,
+                                        aspect=frame.shape[1]/frame.shape[0], zoned=True)
                 observations = []
                 for person, landmarks in enumerate(result.pose_landmarks):
                     center, values, confidence = extract_features(landmarks, args.upper_body_only)
@@ -413,7 +416,9 @@ def main():
                         depths, depth_confidence = hand_depth(landmarks, world)
                         palm = [hand_matches.get((person, side), (0., 0., 0.)) for side in (0, 1)]
                         mouth, mouth_confidence = mouths.get(person, (0., 0.))
-                        extras = dict(mouthOpen=mouth, mouthConfidence=mouth_confidence,
+                        pitch, head_confidence = heads.get(person, (0., 0.))
+                        extras = dict(headPitchDegrees=pitch, headConfidence=head_confidence,
+                                      mouthOpen=mouth, mouthConfidence=mouth_confidence,
                                       handDepth=depths, handDepthConfidence=depth_confidence,
                                       palmFacing=[v[0] for v in palm], palmConfidence=[v[1] for v in palm],
                                       handScale=[v[2] for v in palm],
@@ -424,6 +429,9 @@ def main():
                 assignments = tracker.assign([] if args.people == 1 and len(result.pose_landmarks) != 1 else centers)
                 card_channel.update(frame, assignments, args.people, time.monotonic())
                 for slot, index in assignments.items():
+                    if args.people != 3 or slot != 2:
+                        observations[index][4]['headPitchDegrees'] = 0.
+                        observations[index][4]['headConfidence'] = 0.
                     observations[index][4]['flap'] = flap_features(observations[index][3]) if args.people == 3 and slot == 3 else [0., 0., 0., 0.]
                 packet = {'version': 1, 'trackingEpoch': tracker.epoch, 'performerCount': args.people, 'upperBodyOnly': args.upper_body_only, 'people': [dict(slot=slot, values=observations[i][1], confidence=observations[i][2], **observations[i][4])
                                                  for slot, i in assignments.items()]}

@@ -25,16 +25,28 @@ After restoring the shared Elephant folder above, copy SharedAssetOverrides/Elep
 
 ## Three-person roles
 
-The mirrored camera preview is divided into fixed zones: **left = P1 driver; center = P2 mouth/eating; right = P3 lollipop/flight**. Empty zones do not block the other roles. See [DRIVER_NAVIGATION.md](DRIVER_NAVIGATION.md) for the complete test sequence.
+The mirrored camera preview is divided into fixed zones: **left = P1 driver; center = P2 mouth/head interactions; right = P3 lollipop/flight**. Empty zones do not block the other roles. See [DRIVER_NAVIGATION.md](DRIVER_NAVIGATION.md) for the complete test sequence.
 
 - P1 keeps the existing hand navigation and automatic recovery after tracking loss.
-- P2 opens their mouth to pick up/eat watermelons. Holding a melon permits driving; the eating animation pauses travel.
+- P2 uses mouth opening for watermelons and the log, and head tilt for drinking/spraying. Holding a melon permits driving; action animations pause travel. See the P2 sequence below.
 - P3 shows the specific printed [lollipop reference](StudentTracking/lollipop.png) to collect a nearby candy. The first eaten candy adds a birthday hat; the second enlarges the ears and unlocks synchronized sideways arm flapping for vertical flight. Stop flapping to land slowly.
 - P2 and P3 share exclusive trunk ownership. Candy pickup and flight pause horizontal travel without clearing P1 calibration.
 
 The existing scene, pink elephant, earrings, camera placement, and navigation are retained. The course now has floating candy platforms and a ribbon/confetti finish celebration; no full finish dance was imported.
 
-P2 is adapted from https://github.com/celenashen04-boop/JCK_digiphant/tree/digiphant-integration (eating/animation overlay only). P3 is adapted from https://github.com/kristinyangpi/JCK_Digiphant at main commit `66065793cfe581f3648e31c7e16ac499ad48d623` (printed-card verification, candy rewards, and vertical flight only).
+P2 is adapted from https://github.com/celenashen04-boop/JCK_digiphant/tree/digiphant-integration (watermelon, drinking, spraying/flowers, log eating, and animation overlay). P3 is adapted from https://github.com/kristinyangpi/JCK_Digiphant at main commit `66065793cfe581f3648e31c7e16ac499ad48d623` (printed-card verification, candy rewards, and vertical flight only).
+
+## P2 water and log controls
+
+P2 stays in the center zone and looks straight ahead steadily for 2 seconds to establish head neutral automatically. This is separate from P1 driver calibration. Ordinary tracking loss retains the head neutral; a new tracking epoch requires it again.
+
+- **Drink:** P1 brings the elephant’s head within 3 units of the basin. P2 tilts down at least 7 degrees for 0.3 seconds. Completing the animation stores one spray of water.
+- **Spray:** return to neutral for 0.3 seconds, then tilt up at least 10 degrees for 0.3 seconds. One spray consumes the stored water. Without water, the trunk lifts without spraying. Flowers only grow on supported route/platform surfaces, not in the basin or over the void.
+- **Eat the log:** face the log within 60 degrees and bring the resting trunk tip within 2.5 units. P2 opens their mouth to 0.4 for 0.3 seconds. Two animated bites shrink the log and release wood chips. It stays eaten until Play restarts. An available/held watermelon takes priority.
+
+Return the head to neutral for 0.3 seconds between head actions. P2 and P3 cannot take the trunk from each other; new P2 actions are blocked during flight. Action animations finish before returning control and do not clear P1 calibration. Eating the log keeps the navigation root fixed. The saved interaction positions remain unchanged.
+
+Pre-integration scene backup: `Logs/DigiPhant-before-P2-course-actions-20261011-145015.unity`. Automated checks: 61 Python tests passed; `Logs/P2CourseActions.log` finished with return code 0 and `P2_COURSE_ALL_VALIDATION_OK`, including P2 actions, watermelon, P3 and recovery regressions. This does not establish live three-person camera reliability; visual and human testing are separate.
 
 ## Watermelon clearance fix
 
@@ -52,7 +64,7 @@ Pre-change backup: `Logs/DigiPhant-before-floating-route-20261011-094319.unity`.
 
 ## Verification and backup
 
-Latest checks passed with Unity exit code 0 in `Logs/FloatingCoursePolish.log`: `FLOATING_POLISH_AND_FINISH_RESET_OK`, `WATERMELON_ALL_CHECKS_PASSED`, and `FLOATING_FINAL_ALL_CHECKS_PASSED`. Checks cover directed/in-range crossing, fast crossing, reset and retrigger, plus existing interaction regressions. Earlier backdrop results below describe the previous visual versions. A live three-person full-course run has not been verified.
+Earlier floating-route checks passed with Unity exit code 0 in `Logs/FloatingCoursePolish.log`: `FLOATING_POLISH_AND_FINISH_RESET_OK`, `WATERMELON_ALL_CHECKS_PASSED`, and `FLOATING_FINAL_ALL_CHECKS_PASSED`. Checks cover directed/in-range crossing, fast crossing, reset and retrigger, plus existing interaction regressions. Earlier backdrop results below describe the previous visual versions. A live three-person full-course run has not been verified.
 
 The visibility adjustment passed with Unity exit code 0 in `Logs/BackdropVisibilityVerified.log` (`BACKDROP_VISIBILITY_OK`). It moves the castle and three clouds into the starting view while preserving the original route, controls, and camera transform. Backup: `Logs/DigiPhant-before-visible-backdrop-20261010-215419.unity`. The visibility helper is a local maintenance tool and is not shared.
 

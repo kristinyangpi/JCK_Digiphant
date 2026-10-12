@@ -190790,6 +190790,107 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1930330806}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1931864263
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1931864267}
+  - component: {fileID: 1931864266}
+  - component: {fileID: 1931864265}
+  - component: {fileID: 1931864264}
+  m_Layer: 0
+  m_Name: P2 course actions
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1931864264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931864263}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78ebcfcf54274f0fac6bf9d29cb06f89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StudentWork.LogEating
+  reach: 2.5
+  facingDegrees: 60
+  standOff: -0.4
+  shuffleSeconds: 1
+  startCurl: 0.4
+  holdSeconds: 0.3
+  eatClip: {fileID: 1827226128182048838, guid: 97c8438ec20f87749a999f0b11bb4ce3, type: 3}
+  clipFrom: 0.5
+  clipTo: 4.25
+  speed: 0.8
+  bites: 2
+  maxTurnDegrees: 40
+  bendDegrees: 10
+  blend: 0.5
+  chipsPerSecond: 70
+--- !u!114 &1931864265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931864263}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b255f8948744ef7af5b162161039415, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StudentWork.ElephantSpraying
+  headUpDegrees: 10
+  holdSeconds: 0.3
+  liftClip: {fileID: 1827226128182048838, guid: 12dabfbad51df844d82a88638d46da61, type: 3}
+  liftSeconds: 3.666668
+  sprayFrom: 1.25
+  sprayTo: 2.75
+  blend: 0.3
+  dropletsPerSecond: 420
+  flowersPerSecond: 8
+--- !u!114 &1931864266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931864263}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f88fc75a62e442eaeffe63242469c4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StudentWork.ElephantDrinking
+  reach: 3
+  headDownDegrees: 7
+  holdSeconds: 0.3
+  drinkClip: {fileID: 1827226128182048838, guid: 90d33167f6645c64faabb84065cc32d5, type: 3}
+  clipStart: 0
+  drinkSeconds: 6.666668
+  blend: 0.3
+--- !u!4 &1931864267
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931864263}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1932963957
 GameObject:
   m_ObjectHideFlags: 0
@@ -212667,3 +212768,4 @@ SceneRoots:
   - {fileID: 194090094}
   - {fileID: 940160085}
   - {fileID: 1760751599}
+  - {fileID: 1931864267}
