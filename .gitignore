@@ -16,3 +16,19 @@
 *.sln
 *.slnx
 .vs/
+
+# Local editor files, captures and intermediate exports
+.DS_Store
+.vscode/
+**/Recordings/
+**/recordings/
+**/intermediate_frames/
+**/frames/
+*.mp4
+*.mov
+*.webm
+*.avi
+# Local saved scene backups (keep the performance scene)
+/Assets/DigiPhant/Scenes/*_Before*.unity*
+# Supplied pose model is restored from the pinned starter
+/StudentTracking/pose_landmarker_full.task

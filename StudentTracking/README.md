@@ -8,7 +8,7 @@ StudentTracking/.venv/Scripts/python.exe -m pip install -r StudentTracking/requi
 ```
 On macOS use python3 and .venv/bin/python. Existing installations may reuse DigiPhantStarter/Tracking/.venv automatically.
 
-Pose and Hand Landmarker model files are included. Official sources:
+Restore the omitted Pose Landmarker model from the pinned starter using `python3 tools/restore_shared_assets.py` from the project root. Hand and Face Landmarker files are retained. Official sources:
 - https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
 - https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
 

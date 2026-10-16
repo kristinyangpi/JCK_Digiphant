@@ -1,78 +1,73 @@
-# JACK DigiPhant
+# JCK DigiPhant — group performance
 
-Unity movement-controlled elephant project. See [DIGIPHANT_SETUP.md](DIGIPHANT_SETUP.md) for setup and verification status.
+An adapted Unity elephant game performed by **P1 Junling, P2 Celena and P3 Kristin**. The team navigates the candy course, eats food, waters flowers, unlocks flight and crosses the finish for a tutu ballet celebration.
 
-Open `Assets/DigiPhant/Scenes/DigiPhant.unity` for the current customized elephant and Savannah course.
+## Submission and evidence
 
-GitHub: https://github.com/nobodybutjo/JCK-Digiphant . The Drive performance link has not been configured. Recordings stay outside Git.
+- [Adapted Unity repository / performance branch](https://github.com/kristinyangpi/JCK_Digiphant/tree/group-game-updates)
+- [Performance video](https://drive.google.com/file/d/1nuq7_dsvGaAe9VmaOa4Y9Fo7RMF0Ze9G/view?usp=drive_link)
+- [Player instruction sheet (PDF)](docs/DigiPhant_Player_Guide.pdf)
+- [Editable contribution / gesture table](https://www.figma.com/design/POATy3qU8Iys82aYlSN0xO?node-id=2-2)
+- [Editable formation, coordination and mapping discussion](https://www.figma.com/design/POATy3qU8Iys82aYlSN0xO?node-id=5-2)
+- [DIGIPHANT_SETUP.md](DIGIPHANT_SETUP.md) is retained unchanged as the original setup/status record. Its historical roles, machine paths and pending checks predate the current game; use the reconstruction instructions below for this submission.
 
-## Restore shared assets
+## Reproduce the project
 
-From the Unity project root:
+Download only the latest performance-branch snapshot, avoiding heavy files retained in earlier Git history:
 
-```powershell
-git clone https://github.com/kommanderpi/studentstarter.git DigiPhantStarter
-git -C DigiPhantStarter checkout 4e6dab5271c618d1c0bfb2022c41c0d37cd8d69f
-Copy-Item -LiteralPath .\DigiPhantStarter\Elephant -Destination .\Assets\Elephant -Recurse
-Copy-Item -LiteralPath .\DigiPhantStarter\Elephant.meta -Destination .\Assets\Elephant.meta
+```sh
+git clone --depth 1 --single-branch --branch group-game-updates https://github.com/kristinyangpi/JCK_Digiphant.git
+cd JCK_Digiphant
 ```
 
-Only restore Elephant if its destination folder and metadata are absent. The student repository should track imported `Assets/DigiPhant`; do not overwrite those tracked files with reference copies. Create the tracking environment following DIGIPHANT_SETUP.md. The model is included in the starter clone.
+Use **Unity 6000.6.3f1** (see `ProjectSettings/ProjectVersion.txt`). `Packages/manifest.json`, `Packages/packages-lock.json` and ProjectSettings retain the project configuration. Open **`Assets/DigiPhant/Scenes/DigiPhant.unity`**; it is the enabled build scene. Do not replace it with the starter scene.
 
-## Current navigation
-See DRIVER_NAVIGATION.md. Install Python dependencies using StudentTracking/README.md; the custom hand/pose models are included.
-After restoring the shared Elephant folder above, copy SharedAssetOverrides/Elephant into Assets/Elephant (merge/overwrite materials only) to restore the customized appearance. Do not replace the current DigiPhant scene with the reference scene.
+The supplied heavy Elephant models/textures and pose model are omitted. Restore them from starter commit **`4e6dab5271c618d1c0bfb2022c41c0d37cd8d69f`** with Git and Python 3 installed:
 
-## Three-person roles
+```sh
+python3 tools/restore_shared_assets.py
+```
 
-The mirrored camera preview is divided into fixed zones: **left = P1 driver; center = P2 mouth/head interactions; right = P3 lollipop/flight**. Empty zones do not block the other roles. See [DRIVER_NAVIGATION.md](DRIVER_NAVIGATION.md) for the complete test sequence.
+On Windows use `py -3 tools/restore_shared_assets.py`. The script clones the starter into ignored `DigiPhantStarter/`, reads assets directly from the pinned commit, verifies the pose SHA-256, restores `Assets/Elephant` with its original `.meta` identities and applies `SharedAssetOverrides/Elephant` materials. It never copies the starter scene or scripts. Existing Elephant imports are preserved, so use a clean checkout for exact reconstruction. The hand and face model files are retained with the adapted bridge.
 
-- P1 keeps the existing hand navigation and automatic recovery after tracking loss.
-- P2 uses mouth opening for watermelons and the log, and head tilt for drinking/spraying. Holding a melon permits driving; action animations pause travel. See the P2 sequence below.
-- P3 shows the specific printed [lollipop reference](StudentTracking/lollipop.png) to collect a nearby candy. The first eaten candy adds a birthday hat; the second enlarges the ears and unlocks synchronized sideways arm flapping for vertical flight. Stop flapping to land slowly.
-- P2 and P3 share exclusive trunk ownership. Candy pickup and flight pause horizontal travel without clearing P1 calibration.
+Create a Python environment (Python **3.14** is the locally verified interpreter):
 
-The existing scene, pink elephant, earrings, camera placement, and navigation are retained. The course now has floating candy platforms and a ribbon/confetti finish celebration; no full finish dance was imported.
+```sh
+python3 -m venv StudentTracking/.venv
+StudentTracking/.venv/bin/python -m pip install -r StudentTracking/requirements.txt
+StudentTracking/.venv/bin/python -m pip check
+StudentTracking/.venv/bin/python -m unittest discover -s StudentTracking -p 'test_*.py'
+```
 
-P2 is adapted from https://github.com/celenashen04-boop/JCK_digiphant/tree/digiphant-integration (watermelon, drinking, spraying/flowers, log eating, and animation overlay). P3 is adapted from https://github.com/kristinyangpi/JCK_Digiphant at main commit `66065793cfe581f3648e31c7e16ac499ad48d623` (printed-card verification, candy rewards, and vertical flight only).
+Windows PowerShell equivalents:
 
-## P2 water and log controls
+```powershell
+py -3.14 -m venv StudentTracking/.venv
+StudentTracking/.venv/Scripts/python.exe -m pip install -r StudentTracking/requirements.txt
+StudentTracking/.venv/Scripts/python.exe -m pip check
+StudentTracking/.venv/Scripts/python.exe -m unittest discover -s StudentTracking -p 'test_*.py'
+```
 
-P2 stays in the center zone and looks straight ahead steadily for 2 seconds to establish head neutral automatically. This is separate from P1 driver calibration. Ordinary tracking loss retains the head neutral; a new tracking epoch requires it again.
+Unity's Editor launcher prefers this environment and runs the modified `StudentTracking/bridge.py`. Allow webcam access, close other camera users, open the performance scene, press Play and select three-person Camera control. Keep shoulders/hands visible. P1 holds the displayed neutral calibration; P2 looks straight ahead steadily for two seconds. The Python source, pinned requirements, reference picture, trained SIFT descriptors and tests are included. See [StudentTracking/README.md](StudentTracking/README.md) for diagnostics and reference retraining. No separate untracked Python patch is required.
 
-- **Drink:** P1 brings the elephant’s head within 3 units of the basin. P2 tilts down at least 7 degrees for 0.3 seconds. Completing the animation stores one spray of water.
-- **Spray:** return to neutral for 0.3 seconds, then tilt up at least 10 degrees for 0.3 seconds. One spray consumes the stored water. Without water, the trunk lifts without spraying. Flowers only grow on supported route/platform surfaces, not in the basin or over the void.
-- **Eat the log:** face the log within 60 degrees and bring the resting trunk tip within 2.5 units. P2 opens their mouth to 0.4 for 0.3 seconds. Two animated bites shrink the log and release wood chips. It stays eaten until Play restarts. An available/held watermelon takes priority.
+## Current performance controls
 
-Return the head to neutral for 0.3 seconds between head actions. P2 and P3 cannot take the trunk from each other; new P2 actions are blocked during flight. Action animations finish before returning control and do not clear P1 calibration. Eating the log keeps the navigation root fixed. The saved interaction positions remain unchanged.
+The mirrored preview uses **left=P1, center=P2, right=P3**. Shoulder/face association rejects ambiguous role assignments.
 
-Pre-integration scene backup: `Logs/DigiPhant-before-P2-course-actions-20261011-145015.unity`. Automated checks: 61 Python tests passed; `Logs/P2CourseActions.log` finished with return code 0 and `P2_COURSE_ALL_VALIDATION_OK`, including P2 actions, watermelon, P3 and recovery regressions. This does not establish live three-person camera reliability; visual and human testing are separate.
+| Performer | Input | Elephant behaviour |
+| --- | --- | --- |
+| P1 Junling | Raise both hands: palms toward camera for forward, backs toward camera for reverse; extend left/right hand toward camera to steer; lower hands to stop. | Ground navigation and the same horizontal navigation during flight. Palm-size steering is enabled; input smoothing is 6 and gear selection holds 0.35 s. |
+| P2 Celena | Open mouth near fruit/log; neutral head does nothing; nod down to drink near basin; return neutral then tilt up to spray stored water. | Trunk pickup/eating, drinking and spray; flowers grow on the supported wet floor. Head triggers are 3° down for 0.1 s and 3° up for 0.15 s, with a neutral return between actions. |
+| P3 Kristin | Show the included pink-swirl image near a scene lollipop; hide it 0.8 s before the next. Extend both arms sideways and flap together; stop flapping to land. | Immediate candy eating when reachable; first candy adds a birthday hat, second enlarges ears and unlocks flight. P3 controls elevation/landing while P1 steers. Ears flap in flight instead of walking legs. |
 
-## Watermelon clearance fix
+Trunk actions coordinate through exclusive ownership, preventing food/water animations from competing. Ground pickup and drinking are blocked during flight. The third-person camera follows behind and above the elephant. The scene includes background music, interaction/finish effects and the finish tutu ballet. Earrings are removed.
 
-Fix `291324e` keeps loose watermelons clear of the animated legs and torso, offsets carried fruit from the trunk tip, and checks clearance when fruit is released. Navigation controls are unchanged.
+Additional MediaPipe **Hand Landmarker** supports palm orientation/size navigation, and **Face Landmarker** provides P2 mouth/head gestures alongside the starter Pose Landmarker. The lollipop recognizer uses OpenCV SIFT descriptor matching against the supplied image, not a MediaPipe object detector.
 
-## Floating candy course and finish
+## Included / excluded
 
-The saved scene uses candy-colored roads, cloud platforms and bridge-like supports. The original broad ground, Stage and grid are hidden. Watermelon, lollipop, pond, log and finish interaction positions retain their original transforms and ground height. Navigation and P1/P2/P3 controls are unchanged. There is no new edge constraint or falling physics: the elephant can still move beyond visible platforms within the existing navigation boundary.
+Custom/adapted C# scripts, scene assets and their Unity `.meta` files are under `Assets/DigiPhant`, `Assets/StudentWork`, `Assets/FloatingCourse`, and supporting project folders. Small material overrides preserve the customized Elephant appearance. Original model assets come only from the pinned starter restore.
 
-Walk through the finish ribbon in the course direction to trigger confetti and YOU FINISHED! once. No flight is required. The celebration does not take control or clear P1 calibration. After leaving the start by more than 6 units, returning within 2 units resets the celebration for another run. The full ballet sequence is not included.
+Unity Library/Temp/Logs, build outputs, local environments, starter clone, recordings, intermediate frames and scene backups stay out of the submission. The pose model may remain locally after being untracked; `.gitignore` excludes it from future commits. Earlier Git history may still contain that model; no history rewrite is performed. A fresh `git archive` export of the final commit contains only the current tracked submission.
 
-Artwork is adapted from `kristinyangpi/JCK_Digiphant` commit `66065793cfe581f3648e31c7e16ac499ad48d623`. `CourseFinishCelebration` takes inspiration from its `RibbonFinish`, adapted to this walking route. The existing decorative castle, clouds, waterfalls and balloons remain. The shared scene and `FloatingCourse` assets contain the installed result; local installation/polish helpers are not shared and should not be rerun.
-
-Pre-change backup: `Logs/DigiPhant-before-floating-route-20261011-094319.unity`. Local previews: `Logs/FloatingCourse-game.png`, `Logs/FloatingCourse-overview.png`, and `Logs/FloatingCourse-finish.png`.
-
-## Verification and backup
-
-Earlier floating-route checks passed with Unity exit code 0 in `Logs/FloatingCoursePolish.log`: `FLOATING_POLISH_AND_FINISH_RESET_OK`, `WATERMELON_ALL_CHECKS_PASSED`, and `FLOATING_FINAL_ALL_CHECKS_PASSED`. Checks cover directed/in-range crossing, fast crossing, reset and retrigger, plus existing interaction regressions. Earlier backdrop results below describe the previous visual versions. A live three-person full-course run has not been verified.
-
-The visibility adjustment passed with Unity exit code 0 in `Logs/BackdropVisibilityVerified.log` (`BACKDROP_VISIBILITY_OK`). It moves the castle and three clouds into the starting view while preserving the original route, controls, and camera transform. Backup: `Logs/DigiPhant-before-visible-backdrop-20261010-215419.unity`. The visibility helper is a local maintenance tool and is not shared.
-
-Final backdrop checks passed with Unity exit code 0 in `Logs/CandyBackdropVerified.log`: `CANDY_BACKDROP_VALIDATION_OK`, `WATERMELON_ALL_CHECKS_PASSED`, and `CANDY_BACKDROP_ALL_CHECKS_PASSED`. Checks verify unchanged route geometry, original transforms and control configuration, decoration-only components, and watermelon/P1/P2/P3 regressions. This does not establish live-camera recognition reliability.
-
-Watermelon validation passed with Unity exit code 0: `Logs/WatermelonCollisionValidation.log` contains `WATERMELON_ALL_CHECKS_PASSED`. Checks cover loose-fruit clearance, carried offset, release, and P1/P2/P3 regressions. Real-camera visual confirmation remains a separate step.
-
-52 Python tests passed for the tracking integration. Unity validation passed with exit code 0 in `Logs/P3AllValidationRetry.log`: `P3_VALIDATION_OK`, `P2_EATING_VALIDATION_PASSED`, `AUTO_RECOVERY_VALIDATION_OK`, and `P3_ALL_VALIDATION_OK`. An additional locomotion evaluation check confirmed that flight raises the movement root, the camera follows, P1 calibration persists, tracking loss leads to landing, and slider mode ignores flight. Live three-person camera interaction has not yet been verified; automated checks do not establish real-camera recognition reliability.
-
-Pre-P3 scene backup: `Logs/DigiPhant-before-P3-20261009-175954.unity` (local, excluded from Git). The previous P2 backup is `Logs/DigiPhant-before-P2-eating-20261009-105411.unity`.
-
+Reconstruction checks do not prove live camera recognition or replace the linked performance evidence. Webcam permissions, platform package availability and visual/audio behaviour should also be checked in Unity on the target machine.
