@@ -72,7 +72,9 @@ namespace StudentWork.Editor {
             Check(p && p.controller && p.locomotion && p.tip && p.mouth && p.birthdayHat && p.flight && p.flight.performer==3, "Missing controller/hat/mouth/flight refs");
             Check(p.trunk.Length==7 && p.trunk.All(x=>x) && p.largeEars.Length==2 && p.largeEars.All(x=>x) && p.candies.Length==2 && p.candies.All(x=>x), "Missing trunk/ear/candy refs");
         }
+        [MenuItem("DigiPhant/Validate lollipop image to eating")]
         public static void Validate() {
+            Check(!EditorApplication.isPlaying, "Stop Play mode before running preview-scene validation.");
             var scene=EditorSceneManager.OpenPreviewScene(ScenePath);
             try {
                 var p=scene.GetRootGameObjects().SelectMany(x=>x.GetComponentsInChildren<LollipopPickup>(true)).Single(); CheckReferences(p);
@@ -84,6 +86,14 @@ namespace StudentWork.Editor {
                 f.SetUnlocked(true);
                 for(int slot=1;slot<=2;slot++){Packet(2+slot,slot,0);Packet(2.1f+slot,slot,.4f);Packet(2.2f+slot,slot,0);Check(!f.Flapping,"P1/P2 incorrectly caused flight");}
                 Packet(6,3,0);Packet(6.1f,3,.4f);Packet(6.2f,3,0);Check(f.Flapping,"P3 alternating arms did not fly");
+                f.GroundReset();f.SetUnlocked(true);
+                f.Observe(6.3f,true,true,0,0);f.Observe(6.5f,true,true,.18f,.18f);
+                f.Observe(6.6f,true,false,.18f,.18f); // Short arc through reduced sideways separation.
+                f.Observe(7f,true,true,.18f,.18f);f.Observe(7.3f,true,true,.18f,.18f);
+                f.Observe(7.5f,true,true,0,0);
+                Check(f.Flapping,"Small slower webcam flap or brief sideways dropout failed");
+                f.Observe(7.6f,false,true,0,0);Check(!f.Flapping,"Tracking loss retained flight");
+                Packet(7.7f,3,0);Packet(7.8f,3,.4f);Packet(7.9f,3,0);
                 var position=Vector3.zero;
                 for(int i=0;i<100;i++)position=f.ApplyHeight(position,0,.1f);
                 Check(Mathf.Abs(position.y-2.2f)<.001f,"Height cap failed");
@@ -101,7 +111,12 @@ namespace StudentWork.Editor {
                     candy=p.candies[bite]; var grip=candy.TransformPoint(p.gripLocal); var offset=p.trunk[0].position-travel.position;
                     travel.position=new Vector3(grip.x-offset.x,travel.position.y,grip.z-offset.z);
                     var others=p.candies;p.candies=new[]{candy};
-                    float start=10+bite*30;Check(p.TryPick(start),"Near candy pickup failed");
+                    float start=10+bite*30;
+                    Check(p.AcceptPacket("{\"version\":1,\"label\":\"lollipop\",\"detected\":false,\"score\":0}",start-1),"Absence packet rejected");
+                    p.StepDetection(start-1);p.StepDetection(start-.1f);
+                    const string imagePacket="{\"version\":1,\"label\":\"lollipop\",\"detected\":true,\"score\":0.94}";
+                    Check(p.AcceptPacket(imagePacket,start),"Verified image packet rejected");p.StepDetection(start);
+                    Check(p.MotionPhase=="Reach"&&!p.IsArmed,"Detected image did not immediately trigger eating");
                     Check(ClipOverlay.Busy && ClipOverlay.BlocksTravel,"Candy reach did not own/brake trunk");
                     var competitor=new object();Check(!ClipOverlay.TryAcquire(competitor),"P2 could acquire occupied trunk");
                     for(int frame=1;frame<=1500 && p.MotionPhase!="Idle";frame++) {for(int j=0;j<locals.Length;j++)p.trunk[j].localRotation=locals[j];p.StepMotion(start+frame/60f);}
@@ -114,15 +129,23 @@ namespace StudentWork.Editor {
                 var loco=p.locomotion; var nav=c.GetComponent<DigiPhantDriverNavigation>();
                 Check(loco.Initialise(),"Locomotion initialization failed");
                 void FlightPacket(float t, float h, bool active) {
-                    Check(c.AcceptPacket(JsonUtility.ToJson(new PoseFrame {version=1,performerCount=3,upperBodyOnly=true,people=new[]{Person(1,0,false),Person(3,h,active)}}),t),"Flight integration packet rejected");
+                    var driver=Person(1,0,false);
+                    if(t>100) {driver.values[0]=driver.values[1]=.8f;driver.handDepth[0]=.5f;}
+                    Check(c.AcceptPacket(JsonUtility.ToJson(new PoseFrame {version=1,performerCount=3,upperBodyOnly=true,people=new[]{driver,Person(3,h,active)}}),t),"Flight integration packet rejected");
                 }
+                nav.usePalmSizeSteering=false;
                 FlightPacket(100,0,true); Check(nav.CalibrateAt(100),"P1 calibration for flight failed");
-                Vector3 ground=loco.travelRoot.position;
+                Vector3 ground=loco.travelRoot.position;Quaternion initialHeading=loco.travelRoot.rotation;
                 Check(loco.followCamera && loco.followElephant,"Following camera missing");
                 Vector3 cameraOffset=loco.followCamera.transform.position-ground;
                 for(int i=0;i<30;i++) {float t=100+i*.1f;FlightPacket(t,i%2==0?0:.4f,true);Check(loco.Evaluate(t,.1f),"Flight locomotion failed");}
+                Check(loco.CurrentAction=="Flying","Airborne movement still used walking animation");
+                var earRotations=p.largeEars.Select(e=>e.localRotation).ToArray();f.PoseFlightEars(.1f);
+                Check(p.largeEars.Select((ear,i)=>Quaternion.Angle(earRotations[i],ear.localRotation)).All(angle=>angle>5),"Flight ears did not flap");
+                for(int i=0;i<p.largeEars.Length;i++)p.largeEars[i].localRotation=earRotations[i];
                 Check(loco.travelRoot.position.y>ground.y+.1f && nav.IsCalibrated,"Flight failed to rise or cleared P1 calibration");
-                Check(Vector3.Distance(loco.followCamera.transform.position-loco.travelRoot.position,cameraOffset)<.01f,"Camera did not follow flight");
+                Check(Vector2.Distance(new Vector2(ground.x,ground.z),new Vector2(loco.travelRoot.position.x,loco.travelRoot.position.z))>.1f && Quaternion.Angle(initialHeading,loco.travelRoot.rotation)>1,"P1 could not move and steer during P3 flight");
+                Check(Vector3.Dot(loco.followCamera.transform.position-loco.travelRoot.position,loco.travelRoot.forward)<-1,"Camera is not behind elephant during flight");
                 for(int i=0;i<60;i++) {float t=104+i*.1f;FlightPacket(t,0,false);loco.Evaluate(t,.1f);}
                 Check(Mathf.Abs(loco.travelRoot.position.y-ground.y)<.001f && nav.IsCalibrated,"Landing failed or cleared P1 calibration");
                 c.inputMode=InputMode.TestSliders;FlightPacket(111,0,true);f.PollPose(111);FlightPacket(111.1f,.4f,true);f.PollPose(111.1f);FlightPacket(111.2f,0,true);f.PollPose(111.2f);

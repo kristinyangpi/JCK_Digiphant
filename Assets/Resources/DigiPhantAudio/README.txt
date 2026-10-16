@@ -1,0 +1,1 @@
+Original synthesized audio created for JCK DigiPhant on October 13, 2026. No third-party recordings or music used. Casual music: 100 BPM, 16-bar seamless loop. Event effects: watermelon eating, lollipop eating, drinking, splashing, log eating, and finish fanfare. Runtime volumes are adjustable on the DigiPhant music and effects object in Play mode.

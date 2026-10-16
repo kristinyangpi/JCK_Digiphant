@@ -58,11 +58,11 @@ namespace StudentWork
         bool scanned;
         public bool TrySurface(Vector3 p,out float y) {
             if(!scanned){scanned=true;foreach(var f in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None)) {
-                bool allowed=f.name=="Open path" || (f.name.StartsWith("Island ") && f.name.EndsWith(" icing"));
+                bool allowed=f.name=="Open path" || f.name=="Rounded pink icing island cap" || (f.name.StartsWith("Island ") && f.name.EndsWith(" icing"));
                 var r=f.GetComponent<Renderer>();if(!allowed||!r||!r.enabled||!r.gameObject.activeInHierarchy||!f.sharedMesh)continue;
                 var v=f.sharedMesh.vertices;var ids=f.sharedMesh.triangles;
                 for(int i=0;i<ids.Length;i+=3){var a=f.transform.TransformPoint(v[ids[i]]);var b=f.transform.TransformPoint(v[ids[i+1]]);var c=f.transform.TransformPoint(v[ids[i+2]]);
-                    if(Vector3.Cross(b-a,c-a).normalized.y>.7f)tops.Add(new Top{a=a,b=b,c=c,renderer=r});}
+                    if(Mathf.Abs(Vector3.Cross(b-a,c-a).normalized.y)>.7f)tops.Add(new Top{a=a,b=b,c=c,renderer=r});}
             }}
             y=float.NegativeInfinity;bool found=false;
             foreach(var t in tops){if(!t.renderer||!t.renderer.enabled||!t.renderer.gameObject.activeInHierarchy)continue;

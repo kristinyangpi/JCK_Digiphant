@@ -23,6 +23,8 @@ def head_pitch(face, aspect=1.):
     length = math.hypot((chin.x-top.x)*aspect, chin.y-top.y)
     if length < 1e-5:
         return None
+    # A downward nod rotates the chin away from the camera relative to the
+    # forehead (the nose points down). MediaPipe depth increases away.
     return math.degrees(math.atan2((chin.z-top.z)*aspect, length))
 
 def _match_faces(poses,faces,aspect=1.,zoned=False):
@@ -53,3 +55,15 @@ def match_heads(poses,faces,aspect=1.,zoned=False):
     matches = _match_faces(poses, faces, aspect, zoned)
     return {i:(value,1.) for i,face in matches.items()
             if (value := head_pitch(face,aspect)) is not None}
+
+
+def central_face_inputs(faces):
+    """P2 head/mouth can work with a close-up face and no visible shoulders.
+
+    Exactly one central face is required; boundary and multiple faces are rejected.
+    """
+    central=[face for face in faces if len(face)>152 and
+             math.isfinite(face[1].x) and 1/3+.02<face[1].x<2/3-.02]
+    if len(central)!=1:
+        return None
+    return central[0]

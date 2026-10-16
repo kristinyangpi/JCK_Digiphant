@@ -21,6 +21,19 @@ class ReferenceChecks(unittest.TestCase):
         matrix=cv2.getPerspectiveTransform(np.float32([[0,0],[w,0],[w,h],[0,h]]),np.float32([[120,30],[430,75],[400,480],[95,430]]))
         card=cv2.warpPerspective(self.image,matrix,(640,512),borderValue=(90,150,50))
         self.assertIsNotNone(self.verifier.verify(card))
+    def test_small_webcam_cards_in_p3_crop(self):
+        from p3_tracking import p3_crop
+        h,w=self.image.shape[:2]
+        for width in (80,100,120,140,180):
+            card=cv2.resize(self.image,(width,round(h*width/w)))
+            frame=np.full((480,640,3),120,np.uint8)
+            frame[40:40+card.shape[0],10:10+width]=card
+            self.assertIsNotNone(self.verifier.verify(p3_crop(frame,True)),f'card width {width}')
+            # The same reference in P2/P1 never enters the P3 detector.
+            frame=np.full((480,640,3),120,np.uint8)
+            frame[40:40+card.shape[0],400:400+width]=card
+            self.assertIsNone(self.verifier.verify(p3_crop(frame,True)))
+
     def test_personlike_pink_shapes_and_noise(self):
         image=np.full((512,640,3),190,np.uint8)
         cv2.rectangle(image,(190,210),(430,510),(170,70,245),-1)

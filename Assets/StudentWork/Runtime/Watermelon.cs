@@ -310,7 +310,7 @@ namespace StudentWork
                 Vector3 carriedPoint = Vector3.Lerp(grabbedFrom, CarryPoint(CollisionRadius), Mathf.SmoothStep(0, 1, carried / .25f));
                 transform.position = SeparateCarry(carriedPoint, CollisionRadius);
                 lifted = curl >= eatCurl ? lifted + dt : 0;
-                if (lifted >= eatDelay && ClipOverlay.Owns(this) && eatClip && overlay != null) { Eating = true; elapsed = 0; lifted = 0; overlay?.Begin(); FindAnyObjectByType<DigiPhantLocomotion>()?.StopMotion(); }
+                if (lifted >= eatDelay && ClipOverlay.Owns(this) && eatClip && overlay != null) { Eating = true; DigiPhantAudio.Play("eat-watermelon"); elapsed = 0; lifted = 0; overlay?.Begin(); FindAnyObjectByType<DigiPhantLocomotion>()?.StopMotion(); }
                 else if (curl < releaseCurl) { Held = false; ClipOverlay.Release(this); fallSpeed = 0; transform.position = SeparateFromElephant(transform.position, CollisionRadius); }
                 return;
             }

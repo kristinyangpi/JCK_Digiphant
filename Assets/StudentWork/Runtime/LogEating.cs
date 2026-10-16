@@ -244,7 +244,7 @@ namespace StudentWork
                 if (m.gameObject.activeInHierarchy && !m.Eaten && (m.Held || m.Eating || m.InReach)) melon = true;
             held = !(FindAnyObjectByType<StudentFlight>()?.SuppressTravel ?? false) && curl >= startCurl && InReach && !melon ? held + dt : 0;
             if (held < holdSeconds || ClipOverlay.Busy) return;
-            if (!ClipOverlay.TryAcquire(this)) return; Eating = true;
+            if (!ClipOverlay.TryAcquire(this)) return; Eating = true; DigiPhantAudio.Play("eat-log");
             elapsed = held = 0;
             fullScale = log.localScale;
             shuffle = gap.normalized * (Distance - standOff);

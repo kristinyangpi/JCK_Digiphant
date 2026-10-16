@@ -8,6 +8,6 @@ public sealed class P2HeadGate {
   if(epoch!=currentEpoch){epoch=currentEpoch;Calibrated=false;elapsed=sum=0;armed=true;}
   Ready=false; if(!valid){elapsed=sum=0;neutralHeld=0;return;}
   if(!Calibrated){if(elapsed==0)min=max=pitch;min=UnityEngine.Mathf.Min(min,pitch);max=UnityEngine.Mathf.Max(max,pitch);if(max-min>4){elapsed=sum=0;return;}elapsed+=dt;sum+=pitch*dt;if(elapsed>=2){baseline=sum/elapsed;Calibrated=true;}return;}
-  Delta=pitch-baseline;if(!armed){neutralHeld=UnityEngine.Mathf.Abs(Delta)<4?neutralHeld+dt:0;if(neutralHeld>=.3f)armed=true;}Ready=armed;
+  Delta=pitch-baseline;if(!armed){neutralHeld=UnityEngine.Mathf.Abs(Delta)<2?neutralHeld+dt:0;if(neutralHeld>=.3f)armed=true;}Ready=armed;
  }
 }}

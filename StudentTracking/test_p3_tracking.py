@@ -31,7 +31,9 @@ class P3Tests(unittest.TestCase):
     def test_loss_negative_bypasses_throttle(self):
         self.channel.update(self.frame,{3:0},3,1.)
         packet=self.channel.update(self.frame,{},3,1.01)
-        self.assertEqual(packet,dict(version=1,label='lollipop',detected=False,score=0.))
+        self.assertFalse(packet['detected'])
+        self.assertEqual(packet['score'],0.)
+        self.assertIn('P3 not tracked',packet['status'])
         self.assertEqual(len(self.frames),1)
     def test_invalid_frame_clears_positive_without_reusing(self):
         for invalid in (None,np.zeros((0,300,3)),np.zeros((50,50))):
@@ -59,6 +61,13 @@ class P3Tests(unittest.TestCase):
         self.assertEqual(flap_features(points)[3],.2)
         points[15].x=float('nan')
         self.assertEqual(flap_features(points),[0,0,0,0])
+    def test_flap_arc_with_less_lateral_separation(self):
+        points=[SimpleNamespace(x=.5,y=.5,visibility=1.,presence=1.) for _ in range(33)]
+        for i,x,y in ((11,.4,.4),(12,.6,.4),(15,.31,.2),(16,.69,.2)):
+            points[i].x=x;points[i].y=y
+        self.assertEqual(flap_features(points)[2],1.)
+        points[15].presence=0.
+        self.assertEqual(flap_features(points)[3],0.)
     def test_forward_or_crossed_hands_not_sideways(self):
         points=[SimpleNamespace(x=.5,y=.5,visibility=1.,presence=1.) for _ in range(33)]
         points[11].x=.4; points[12].x=.6

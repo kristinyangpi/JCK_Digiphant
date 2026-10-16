@@ -6,17 +6,12 @@ import numpy as np
 
 class PrintedReferenceVerifier:
     def __init__(self, path):
-        image=cv2.imread(str(path))
-        if image is None: raise ValueError(f'Reference unreadable: {path}')
-        self.reference=cv2.resize(image,(500,round(image.shape[0]*500/image.shape[1])))
+        from train_reference import load_model, train_reference
+        path=Path(path)
+        model=path.with_suffix('.reference.npz')
         self.sift=cv2.SIFT_create(nfeatures=1200)
         self.matcher=cv2.BFMatcher(cv2.NORM_L2)
-        self.variants=[]
-        for mirrored in (False,True):
-            image=cv2.flip(self.reference,1) if mirrored else self.reference
-            gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-            points,features=self.sift.detectAndCompute(gray,None)
-            self.variants.append((image,gray,points,features,mirrored))
+        self.variants=load_model(path,model) if model.exists() else train_reference(path)
 
     def verify(self, frame):
         original_h,original_w=frame.shape[:2]
@@ -24,21 +19,21 @@ class PrintedReferenceVerifier:
         view=cv2.resize(frame,(round(original_w*scale),round(original_h*scale)))
         gray=cv2.cvtColor(view,cv2.COLOR_BGR2GRAY)
         points,features=self.sift.detectAndCompute(gray,None)
-        if features is None or len(points)<16: return None
+        if features is None or len(points)<12: return None
         best=None
         for reference,refgray,refpoints,reff,mirrored in self.variants:
             pairs=self.matcher.knnMatch(reff,features,k=2)
-            good=[a for pair in pairs if len(pair)==2 for a,b in [pair] if a.distance<.70*b.distance]
-            if len(good)<20: continue
-            src=np.float32([refpoints[m.queryIdx].pt for m in good])
+            good=[a for pair in pairs if len(pair)==2 for a,b in [pair] if a.distance<.78*b.distance]
+            if len(good)<12: continue
+            src=np.float32([refpoints[m.queryIdx] for m in good])
             dst=np.float32([points[m.trainIdx].pt for m in good])
             matrix,inliers=cv2.findHomography(src,dst,cv2.RANSAC,3)
             if matrix is None or inliers is None: continue
             selected=inliers.ravel().astype(bool); count=int(selected.sum()); ratio=count/len(good)
-            if count<16 or ratio<.55: continue
+            if count<12 or ratio<.5: continue
             # Swirl aliases or one small texture patch must not prove a whole card.
             spread=np.ptp(src[selected],axis=0)
-            if spread[0]<180 or spread[1]<180: continue
+            if spread[0]<refgray.shape[1]*.30 or spread[1]<refgray.shape[1]*.30: continue
             h,w=refgray.shape
             corners=cv2.perspectiveTransform(np.float32([[[0,0],[w,0],[w,h],[0,h]]]),matrix)[0]
             if not np.isfinite(corners).all() or not cv2.isContourConvex(corners): continue
@@ -51,11 +46,11 @@ class PrintedReferenceVerifier:
             pink=(reference[:,:,2].astype(float)-reference[:,:,1]>35)&(reference[:,:,2]>130)
             observed=(aligned[:,:,2].astype(float)-aligned[:,:,1]>25)&(aligned[:,:,2]>95)
             dice=2*np.sum(pink&observed)/max(1,np.sum(pink)+np.sum(observed))
-            roi=np.s_[10:min(440,h),35:w-35]
+            roi=np.s_[max(1,round(w*.02)):min(round(w*.88),h),round(w*.07):w-round(w*.07)]
             a=cv2.GaussianBlur(refgray,(5,5),0)[roi].astype(float).ravel()
             b=cv2.GaussianBlur(cv2.cvtColor(aligned,cv2.COLOR_BGR2GRAY),(5,5),0)[roi].astype(float).ravel()
             correlation=float(np.corrcoef(a,b)[0,1]) if b.std()>1 else 0
-            if not np.isfinite(correlation) or correlation<.60 or dice<.58: continue
+            if not np.isfinite(correlation) or correlation<.48 or dice<.48: continue
             # Heuristic verifier score: not a calibrated real-world probability.
             score=float(min(.99,.72+.16*correlation+.08*dice))
             lo=np.maximum(corners.min(0)/scale,0); hi=np.minimum(corners.max(0)/scale,[original_w,original_h])

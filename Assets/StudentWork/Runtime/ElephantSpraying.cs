@@ -12,9 +12,9 @@ namespace StudentWork
     public class ElephantSpraying : MonoBehaviour
     {
         [Tooltip("How far above neutral, in degrees, the head must tilt upwards.")]
-        [Range(0, 45)] public float headUpDegrees = 10;
+        [Range(0, 45)] public float headUpDegrees = 3;
         [Tooltip("Seconds the head must stay up before the trunk lifts.")]
-        public float holdSeconds = .3f;
+        public float holdSeconds = .15f;
         public AnimationClip liftClip;
         [Tooltip("How long the animation plays. Set to the whole clip when it is found.")]
         public float liftSeconds = 3.67f;
@@ -31,7 +31,7 @@ namespace StudentWork
         public ParticleSystem Water { get; private set; }
         public int DropletsReleased { get; private set; }
         [Tooltip("Flowers sown per second of spraying; each grows where its water lands.")]
-        public float flowersPerSecond = 8;
+        public float flowersPerSecond = 24;
         public FlowerPatch Flowers { get; private set; }
         // The droplets' flight, shared with the flowers so they come up where the water is seen to land.
         const float MinSpeed = 7, MaxSpeed = 10, ConeDegrees = 10, GravityScale = 1.3f;
@@ -95,7 +95,7 @@ namespace StudentWork
             main.playOnAwake = false;
             main.loop = true;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(1.1f, 1.6f);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(3.5f, 4f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(MinSpeed, MaxSpeed);
             main.startSize = new ParticleSystem.MinMaxCurve(.1f, .26f);
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(.55f, .8f, 1, .95f), new Color(.85f, .95f, 1, .9f));
@@ -104,6 +104,10 @@ namespace StudentWork
             // Unity pauses a looping system it considers off screen, and an empty jet counts as off screen, so it
             // would never start. Keep it simulating; droplets are also released by hand each frame (see SetSpray).
             main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
+            var collision=water.collision;
+            collision.enabled=true;collision.type=ParticleSystemCollisionType.World;
+            collision.mode=ParticleSystemCollisionMode.Collision3D;
+            collision.dampen=1;collision.bounce=0;collision.lifetimeLoss=1;
             var emission = water.emission;
             emission.enabled = false;   // droplets are released from SetSpray, not by the system's own timer
             var shape = water.shape;
@@ -122,7 +126,7 @@ namespace StudentWork
             return water;
         }
 
-        void OnDisable() { Lifting=SprayingWater=WithWater=false; held=elapsed=owed=flowersOwed=0; ClipOverlay.Release(this); if(Water) Water.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); }
+        void OnDisable() { DigiPhantAudio.StopLoop("splash"); Lifting=SprayingWater=WithWater=false; held=elapsed=owed=flowersOwed=0; ClipOverlay.Release(this); if(Water) Water.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); }
 
         void LateUpdate()
         {
@@ -161,6 +165,8 @@ namespace StudentWork
         // The jet leaves the trunk tip in the direction the end of the trunk points.
         void SetSpray(bool on, float dt)
         {
+            if(on && !SprayingWater)DigiPhantAudio.StartLoop("splash");
+            else if(!on && SprayingWater)DigiPhantAudio.StopLoop("splash");
             if (Water)
             {
                 Vector3 along = tip.position - beforeTip.position;
@@ -172,20 +178,43 @@ namespace StudentWork
                     owed += dropletsPerSecond * dt;
                     int count = Mathf.FloorToInt(owed);
                     owed -= count;
-                    if (count > 0) { Water.Emit(count); DropletsReleased += count; }
-                    // A few of those jets are followed to the ground, where each one grows a flower.
-                    flowersOwed += flowersPerSecond * dt;
-                    for (; flowersOwed >= 1; flowersOwed--)
-                    {
-                        Vector3 forward = Water.transform.forward;
-                        Vector3 aim = Quaternion.AngleAxis(Random.Range(0f, 360f), forward) * (Quaternion.AngleAxis(Random.Range(0f, ConeDegrees), Water.transform.right) * forward);
-                        Flowers.Sow(tip.position, aim * Random.Range(MinSpeed, MaxSpeed), -Physics.gravity.y * GravityScale, groundY,
-                            basin ? basin.position : (Vector3?)null, 1.8f);
+                    // Aim the actual droplets at a reachable dry floor patch, rather
+                    // than shooting past the floating islands into empty space.
+                    Vector3 target=WetFloorTarget();
+                    const float flightTime=1.2f;
+                    Vector3 velocity=(target-tip.position)/flightTime+Vector3.up*(.5f*-Physics.gravity.y*GravityScale*flightTime);
+                    float flowerRate=flowersPerSecond/Mathf.Max(1,dropletsPerSecond);
+                    for(int i=0;i<count;i++) {
+                        Vector3 jitter=new Vector3(Random.Range(-.7f,.7f),Random.Range(-.15f,.15f),Random.Range(-.7f,.7f));
+                        Vector3 jetVelocity=velocity+jitter;
+                        Water.Emit(new ParticleSystem.EmitParams{position=tip.position,velocity=jetVelocity,startLifetime=4f},1);
+                        DropletsReleased++;
+                        flowersOwed+=flowerRate;
+                        if(flowersOwed>=1) {
+                            flowersOwed-=1;
+                            Flowers.Sow(tip.position,jetVelocity,-Physics.gravity.y*GravityScale,groundY,
+                                basin?basin.position:(Vector3?)null,1.2f);
+                        }
                     }
                 }
                 else owed = flowersOwed = 0;
             }
             SprayingWater = on;
+        }
+
+        Vector3 WetFloorTarget() {
+            var loco=drinking?FindAnyObjectByType<DigiPhantLocomotion>():null;
+            var root=loco?loco.travelRoot:null;
+            Vector3 origin=root?root.position:tip.position;
+            Vector3 forward=root?root.forward:Vector3.forward;
+            foreach(float distance in new[]{5f,4.5f,3f,6f,2f})foreach(float angle in new[]{0f,-35f,35f,-70f,70f,180f}) {
+                Vector3 at=origin+Quaternion.AngleAxis(angle,Vector3.up)*forward*distance;
+                if(Flowers.TrySurface(at,out float y)) {
+                    at.y=y;
+                    if(!basin || new Vector2(at.x-basin.position.x,at.z-basin.position.z).magnitude>1.6f)return at;
+                }
+            }
+            return origin+forward*3+Vector3.down*.1f;
         }
 
         void OnGUI()

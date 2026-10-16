@@ -35,6 +35,20 @@ class HeadTests(MouthTests):
         self.assertLess(head_pitch(f),0)
         small=[P(x=.5+(v.x-.5)*.5,y=.5+(v.y-.5)*.5,z=v.z*.5) for v in f]
         self.assertAlmostEqual(head_pitch(f),head_pitch(small))
+    def test_rigid_downward_nod(self):
+        import math
+        f=self.face();angle=math.radians(15)
+        # Rotate about image X: a cameraward nose (negative Z) moves down.
+        for index,y in ((10,-.1),(152,.1)):
+            f[index].y=.5+y*math.cos(angle)
+            f[index].z=y*math.sin(angle)
+        self.assertAlmostEqual(head_pitch(f),15)
+    def test_face_only_p2_rejects_boundary_and_ambiguity(self):
+        from mouth_tracking import central_face_inputs
+        f=self.face()
+        self.assertIs(central_face_inputs([f]),f)
+        for faces in ([],[f,self.face()],[self.face(1/3)],[self.face(.8)]):
+            self.assertIsNone(central_face_inputs(faces))
     def test_head_zone_and_ambiguity(self):
         self.assertEqual(set(match_heads([self.pose(.8),self.pose(.5),self.pose(.2)],
                                         [self.face(.8),self.face(.5),self.face(.2)],zoned=True)),{1})

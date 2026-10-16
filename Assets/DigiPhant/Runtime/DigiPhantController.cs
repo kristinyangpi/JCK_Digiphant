@@ -107,6 +107,7 @@ namespace DigiPhant
 
         void OnEnable()
         {
+            StudentWork.DigiPhantAudio.Ensure();
             if (Application.isPlaying && !Application.isBatchMode && showCameraPreview && GetComponent<DigiPhantCameraPreview>() == null)
                 gameObject.AddComponent<DigiPhantCameraPreview>();
             if (Application.isPlaying && !Application.isBatchMode && GetComponent<DigiPhantRecording>() == null)
@@ -323,6 +324,7 @@ namespace DigiPhant
         {
             int i = slot - 1;
             if (i < 0 || i >= 4 || now - lastSeen[i] > trackingTimeout) return false;
+            if(slot==2 && performerCount==3 && (headConfidence[i]>=minimumConfidence || mouthConfidence[i]>=minimumConfidence))return true;
             for (int k = 0; k < 6; k++) if (confidence[i, k] >= minimumConfidence) return true;
             return false;
         }
@@ -490,6 +492,7 @@ namespace DigiPhant
         }
         public void ApplyControls(float now, float dt)
         {
+            if(GetComponent<StudentWork.FinishBallet>()?.ControlsElephant==true)return;
             foreach (var pair in rest) if (pair.Key != null) pair.Key.localRotation = pair.Value;
             var locomotion = GetComponent<DigiPhantLocomotion>();
             bool animated = locomotion != null && locomotion.isActiveAndEnabled && locomotion.Evaluate(now, dt);

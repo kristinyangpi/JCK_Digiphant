@@ -13,7 +13,7 @@ def flap_features(landmarks):
     scale = max(math.dist((ls.x, ls.y), (rs.x, rs.y)), .03)
     center_y = (ls.y + rs.y) / 2
     outward = ((lw.x-ls.x)*(ls.x-rs.x) > 0 and (rw.x-rs.x)*(rs.x-ls.x) > 0)
-    sideways = outward and abs(lw.x-ls.x)/scale > .65 and abs(rw.x-rs.x)/scale > .65
+    sideways = outward and abs(lw.x-ls.x)/scale > .35 and abs(rw.x-rs.x)/scale > .35
     quality = max(0., min(1., min(min(p.visibility, p.presence) for p in (ls, rs, lw, rw))))
     return [(center_y-lw.y)/scale, (center_y-rw.y)/scale, float(sideways), quality]
 
@@ -36,17 +36,21 @@ class P3CardChannel:
         self.address = ('127.0.0.1', port + 3)
         self.last_check = -math.inf
         self.positive = False
+        self.status = "Show the lollipop image in P3 (preview right)"
 
     def emit(self, result=None):
         score = float(result.get('score', 0.)) if result else 0.
         detected = bool(result) and math.isfinite(score) and score > 0.
         packet = dict(version=1, label='lollipop', detected=detected,
-                      score=score if detected else 0.)
+                      score=score if detected else 0., status=self.status)
         self.sender.sendto(json.dumps(packet, allow_nan=False).encode(), self.address)
         self.positive = detected
         return packet
 
     def update(self, frame, assignments, people, now):
+        self.status = ("Select 3 people for P3 lollipop detection" if people != 3 else
+                       "P3 not tracked: stand in preview right with shoulders visible" if 3 not in assignments else
+                       "Show the pink swirl image larger inside P3 (preview right)")
         crop = p3_crop(frame, people == 3 and 3 in assignments)
         if crop is None:
             if self.positive or now-self.last_check >= .1:
@@ -56,8 +60,12 @@ class P3CardChannel:
         if now-self.last_check < .1:
             return None
         self.last_check = now
-        return self.emit(self.verifier.verify(crop))
+        result = self.verifier.verify(crop)
+        if result:
+            self.status = "Lollipop image matched; hold still"
+        return self.emit(result)
 
     def close(self):
+        self.status = "Camera interrupted or stopped: no lollipop detection"
         return self.emit()
 

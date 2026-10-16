@@ -1,4 +1,4 @@
-from mouth_tracking import match_mouths, match_heads
+from mouth_tracking import match_mouths, match_heads, central_face_inputs, mouth_open, head_pitch
 from p3_tracking import P3CardChannel, flap_features
 """DigiPhant camera -> local Unity UDP bridge. Run with --help for setup options."""
 import argparse
@@ -14,6 +14,26 @@ import uuid
 
 FEATURES = ('LeftHandHeight', 'RightHandHeight', 'LeftFootLift', 'RightFootLift', 'Lean', 'ArmSpread')
 MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task'
+
+
+
+class CameraFrameRecovery:
+    """Bounded warmup/dropout tolerance; callers clear all input while waiting."""
+    def __init__(self):
+        self.delivered = False
+        self.failed_since = None
+
+    def update(self, valid, now):
+        if valid:
+            self.delivered = True
+            self.failed_since = None
+            return True
+        if self.failed_since is None:
+            self.failed_since = now
+        limit = 1.0 if self.delivered else 3.0
+        if now - self.failed_since >= limit:
+            raise RuntimeError(f'Camera delivered no frames for {limit:.0f}s. Check camera permission, close competing camera apps, or try another camera index.')
+        return False
 
 
 def extract_features(landmarks, upper_body_only=False):
@@ -331,6 +351,7 @@ def main():
     colors = [(100, 230, 100), (255, 180, 80), (100, 160, 255), (220, 100, 230)]
     previous_timestamp = -1
     last_preview = 0.0
+    frame_recovery = CameraFrameRecovery()
     print('Three-person mode: mirrored LEFT P1 DRIVER, CENTER P2 EAT, RIGHT P3 LOLLIPOP / FLAP. Stay clear of boundaries.')
     print('One-person mode auto-tracks; two/four-person modes keep position tracking. Roles belong to zones in three-person mode.')
     print('R: reset tracking (then recalibrate in Unity). Q: quit.')
@@ -383,9 +404,22 @@ def main():
                         tracker = create_tracker(count)
                         print(f'Unity selected {count} people. Reassigning; set neutral pose in Unity.')
                 ok, frame = camera.read()
-                if not ok or frame is None or frame.size == 0:
+                valid_frame = ok and frame is not None and frame.size > 0
+                if not valid_frame:
+                    # Never keep a positive card, mouth, or movement input alive
+                    # during camera warmup or an interrupted frame stream.
                     card_channel.close()
-                    raise RuntimeError('Camera stopped delivering frames.')
+                    empty = dict(version=1, trackingEpoch=tracker.epoch,
+                                 performerCount=args.people, upperBodyOnly=args.upper_body_only, people=[])
+                    sender.sendto(json.dumps(empty).encode(), ('127.0.0.1', args.port))
+                    if frame_recovery.failed_since is None:
+                        print('Waiting for camera frames...', flush=True)
+                    frame_recovery.update(False, time.monotonic())
+                    time.sleep(.05)
+                    continue
+                if frame_recovery.failed_since is not None:
+                    print('Camera frames ready; tracking resumed.', flush=True)
+                frame_recovery.update(True, time.monotonic())
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 timestamp = max(previous_timestamp + 1, time.monotonic_ns() // 1_000_000)
                 previous_timestamp = timestamp
@@ -427,6 +461,18 @@ def main():
                 # Solo recovery requires exactly one detected body, including low-confidence bystanders.
                 centers = [o[0] for o in observations]
                 assignments = tracker.assign([] if args.people == 1 and len(result.pose_landmarks) != 1 else centers)
+                if args.people==3 and face_detector is not None and 2 not in assignments:
+                    central_bodies=[o for o in observations if all(math.isfinite(v) for v in o[0]) and 1/3+.02<o[0][0]<2/3-.02]
+                    face=central_face_inputs(face_result.face_landmarks) if len(central_bodies)<=1 else None
+                    if face is not None:
+                        pitch=head_pitch(face,frame.shape[1]/frame.shape[0])
+                        mouth=mouth_open(face,frame.shape[1]/frame.shape[0])
+                        extras=dict(headPitchDegrees=pitch or 0.,headConfidence=1. if pitch is not None else 0.,
+                                    mouthOpen=mouth or 0.,mouthConfidence=1. if mouth is not None else 0.,
+                                    handDepth=[0.,0.],handDepthConfidence=[0.,0.],palmFacing=[0.,0.],palmConfidence=[0.,0.],
+                                    handScale=[0.,0.],handScaleConfidence=[0.,0.])
+                        assignments[2]=len(observations)
+                        observations.append(((face[1].x,face[1].y),[0.]*6,[0.]*6,[],extras))
                 card_channel.update(frame, assignments, args.people, time.monotonic())
                 for slot, index in assignments.items():
                     if args.people != 3 or slot != 2:
@@ -440,6 +486,11 @@ def main():
                 if not args.no_mirror_preview:
                     frame = cv2.flip(frame, 1)
                 h, w = frame.shape[:2]
+                card_text = card_channel.status
+                cv2.putText(frame, card_text, (12, h-12), cv2.FONT_HERSHEY_SIMPLEX,
+                            max(.45, w/1600), (20,20,20), 3, cv2.LINE_AA)
+                cv2.putText(frame, card_text, (12, h-12), cv2.FONT_HERSHEY_SIMPLEX,
+                            max(.45, w/1600), (180,70,255), 1, cv2.LINE_AA)
                 # Draw every detection, even while waiting for the full group or
                 # rejecting an ambiguous identity. Only assigned bodies drive Unity.
                 slots = {id(observations[i][3]): slot for slot, i in assignments.items()}

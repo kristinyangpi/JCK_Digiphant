@@ -28,11 +28,12 @@ namespace StudentWork
         public Vector3 gripLocal = new Vector3(0, -1.105f, 0);
         [Range(1,2.5f)] public float maxPickupReachMultiplier=2.5f;
         public string Status { get; private set; } = "Detecting: show the lollipop picture";
-        [Serializable] public class Packet { public int version; public string label; public bool detected; public float score = -1; }
+        [Serializable] public class Packet { public int version; public string label; public bool detected; public float score = -1; public string status; }
         UdpClient socket;
         float seen = -1000, hold = -1, absent = -1, phaseStart;
         float nextAttempt;
         bool detected, armed = true;
+        string detectionStatus = "Waiting for lollipop camera packets";
         enum Phase { Idle, Reach, Mouth, Eat, Return }
         Phase phase;
         Transform target;
@@ -106,6 +107,7 @@ namespace StudentWork
                 if(now-seen>.35f) hold=-1;
                 detected = p.detected && p.score >= .7f;
                 if(!detected) hold=-1;
+                detectionStatus = string.IsNullOrEmpty(p.status) ? "Show the lollipop picture" : p.status;
                 seen = now; return true;
             } catch (Exception) { return false; }
         }
@@ -125,17 +127,14 @@ namespace StudentWork
             if (!visible) {
                 hold = -1; if (absent < 0) absent = now;
                 if (now - absent >= .8f) armed = true;
-                if (phase == Phase.Idle && picked.Count==0 && !Status.StartsWith("Walk closer") && !Status.StartsWith("Candy outside") && !Status.StartsWith("Reach cancelled")) Status = "Detecting: show the lollipop picture";
+                if (phase == Phase.Idle && picked.Count==0 && !Status.StartsWith("Walk closer") && !Status.StartsWith("Candy outside") && !Status.StartsWith("Reach cancelled")) Status = now-seen >= 2f ? "Camera detection offline: press camera Retry" : detectionStatus;
                 return;
             }
             absent = -1;
             if (!armed || phase != Phase.Idle) return;
-            if (hold < 0) hold = now;
-            if(now-hold<.5f) Status = "Hold picture still...";
-            else if(now>=nextAttempt) {
-                nextAttempt=now+.25f;
-                if(TryPick(now)) { armed=false; hold=-1; }
-                // Keep a verified picture pending while the user walks closer.
+            if(now>=nextAttempt) {
+                nextAttempt=now+.15f;
+                if(TryPick(now)) {armed=false;hold=-1;}
             }
         }
         public Transform ClosestReachable()
@@ -213,7 +212,7 @@ namespace StudentWork
                 Solve(aim,baseline);
                 ApplyCarry();
                 LastReachError=Vector3.Distance(tip.position,gripAtMouth);
-                if(now-phaseStart>=1.8f && LastReachError<.15f) { phase=Phase.Eat; phaseStart=now; mouthStart=tip.position; Status="Eating lollipop"; }
+                if(now-phaseStart>=1.8f && LastReachError<.15f) { phase=Phase.Eat; DigiPhantAudio.Play("eat-lollipop"); phaseStart=now; mouthStart=tip.position; Status="Eating lollipop"; }
                 else if(now-phaseStart>6f) { ReleaseFailedCandy(); phase=Phase.Return; phaseStart=now; desiredExtension=extension; Status="Could not reach mouth; candy restored for retry"; }
             } else if(phase==Phase.Eat) {
                 SetExtension(1);
@@ -311,6 +310,10 @@ namespace StudentWork
             if(phase==Phase.Reach || phase==Phase.Mouth || phase==Phase.Eat) ReleaseFailedCandy();
             CancelReach();hold=absent=-1;seen=-1000;detected=false;armed=true;
         }
+        public void PrepareForFinish() {
+            if(phase==Phase.Reach || phase==Phase.Mouth || phase==Phase.Eat) ReleaseFailedCandy();
+            CancelReach();hold=absent=-1;seen=-1000;detected=false;armed=true;
+        }
         void CancelReach() {
             // Reset may run before any reach, or after editor domain reload has
             // restored an empty/partial private array. Idle reset must also leave
@@ -322,12 +325,12 @@ namespace StudentWork
             SetExtension(1);
             SetReachSkin(false);
         }
-        void LateUpdate() {  float now=Time.realtimeSinceStartup; Poll(now); StepDetection(now); StepMotion(now); }
+        void LateUpdate() { if(GetComponent<FinishBallet>()?.ControlsElephant==true)return; float now=Time.realtimeSinceStartup; Poll(now); StepDetection(now); StepMotion(now); }
         void OnGUI() {
             
             GUILayout.BeginArea(new Rect(Mathf.Max(380,Screen.width-360),Screen.height-155,350,145),GUI.skin.box);
             GUILayout.Label("LOLLIPOP PICKUP: "+Status);
-            if(flight && flight.Unlocked) GUILayout.Label("FLIGHT (person "+flight.performer+"): "+(flight.Flapping?"Flapping":flight.IsAirborne?"Landing slowly":"Extend arms sideways and flap up/down"));
+            if(flight && flight.Unlocked) GUILayout.Label("FLIGHT (person "+flight.performer+"): "+(flight.IsAirborne && !flight.Flapping ? "Landing slowly" : flight.Status));
             if(GUILayout.Button("Test pick nearest reachable candy")) TestPick();
             if(GUILayout.Button("Reset picks")) ResetPicks();
             GUILayout.EndArea();

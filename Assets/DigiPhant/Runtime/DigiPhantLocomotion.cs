@@ -46,6 +46,7 @@ namespace DigiPhant
         public Transform animationMotionRoot;
         public Camera followCamera;
         public bool followElephant = true;
+        public float cameraDistance=12, cameraHeight=10, cameraLookHeight=1.5f, cameraFollowSharpness=8;
         public AnimationClip idle, walk, run, backward, turnLeft, turnRight, walkLeft, walkRight, runLeft, runRight;
         public MovementDriver forward = new MovementDriver { sources = new[] { new MovementSource { movement = Movement.LeftHandHeight } } };
         public MovementDriver steering = new MovementDriver { sources = new[] { new MovementSource { movement = Movement.Lean } } };
@@ -168,7 +169,7 @@ namespace DigiPhant
             }
             var flight = GetComponent<StudentWork.StudentFlight>();
             if (flight && flight.isActiveAndEnabled) flight.PollPose(now);
-            if (StudentWork.ClipOverlay.BlocksTravel || (flight && flight.isActiveAndEnabled && flight.SuppressTravel)) { valid = false; desiredForward = desiredTurn = 0; }
+            if (StudentWork.ClipOverlay.BlocksTravel) { valid = false; desiredForward = desiredTurn = 0; }
             if (!valid) { throttle = turn = 0; }
             else
             {
@@ -186,7 +187,9 @@ namespace DigiPhant
                 ? throttle / runThreshold * walkSpeed : Mathf.Lerp(walkSpeed, runSpeed, Mathf.InverseLerp(runThreshold, 1, throttle));
             int action = throttle < 0 ? 3 : throttle > 0 ? (running ? 2 : 1) : turn < 0 ? 4 : turn > 0 ? 5 : 0;
             if (throttle > 0 && Mathf.Abs(turn) > .15f) action = running ? (turn < 0 ? 8 : 9) : (turn < 0 ? 6 : 7);
-            CurrentAction = actions[action];
+            bool flyingPose=flight && flight.isActiveAndEnabled && (flight.Flapping || flight.IsAirborne);
+            if(flyingPose) action=0; // Idle body: P1 translation and steering stay unchanged.
+            CurrentAction = flyingPose ? "Flying" : actions[action];
             float animationRate = action == 0 ? 1 : throttle != 0
                 ? Mathf.Max(.15f, Mathf.Abs(CurrentSpeed) / (throttle < 0 ? backwardSpeed : running ? runSpeed : walkSpeed))
                 : Mathf.Max(.15f, Mathf.Abs(turn) * turnDegreesPerSecond / 18.75f);
@@ -196,7 +199,7 @@ namespace DigiPhant
             for (int i = 0; i < clips.Length; i++)
             {
                 mixer.SetInputWeight(i, Mathf.Lerp(mixer.GetInputWeight(i), i == action ? 1 : 0, weightBlend));
-                playables[i].SetTime(cycle * clips[i].length);
+                playables[i].SetTime(flyingPose ? 0 : cycle * clips[i].length);
             }
             graph.Evaluate(0);
             // The travel parent alone owns world movement. Remove exported motion-node drift.
@@ -217,8 +220,17 @@ namespace DigiPhant
             destination.y = travelRoot.position.y;
             destination = flight && flight.isActiveAndEnabled ? flight.ApplyHeight(destination, startPosition.y, dt) : new Vector3(destination.x, startPosition.y, destination.z);
             travelRoot.position = destination;
-            if (followElephant && followCamera) followCamera.transform.position = destination + cameraOffset;
+            if (followElephant && followCamera) FollowBehind(dt);
             return true;
+        }
+        public void FollowBehind(float dt) {
+            if(!travelRoot || !followCamera)return;
+            Vector3 target=travelRoot.position+Vector3.up*cameraLookHeight;
+            Vector3 desired=travelRoot.position-travelRoot.forward*Mathf.Max(3,cameraDistance)+Vector3.up*cameraHeight;
+            float blend=1-Mathf.Exp(-Mathf.Max(1,cameraFollowSharpness)*Mathf.Max(0,dt));
+            var camera=followCamera.transform;
+            camera.position=Vector3.Lerp(camera.position,desired,blend);
+            camera.rotation=Quaternion.Slerp(camera.rotation,Quaternion.LookRotation(target-camera.position,Vector3.up),blend);
         }
         public void ResetPosition()
         {
